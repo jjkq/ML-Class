@@ -1,0 +1,65 @@
+######################################
+# Machine Learning HW1 - Random Forest
+# Part 1 - Read Retrival Files -- GMI
+######################################
+import numpy as np
+import pandas as pd
+import scipy as sp
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import h5py
+import os
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import export_graphviz
+from sklearn.inspection import permutation_importance
+#import pydot
+
+basepath = '/pdata4/archive/GPM/2A-CLIM_GMI/2112/211201/'
+
+for x in range (0, 1):
+    for filename in os.listdir(basepath):
+        if filename.endswith('.HDF5'):
+            pfile = os.path.join(basepath, filename)
+            
+            data = pd.read_hdf(pfile)
+#reading GPROF data
+#            group = h5py.File(pfile, 'r')
+#            S0 = group['GprofDHeadr']
+#            S1 = group['S1']
+#            ST = group['ScanTime']
+#            SCs= group['SCstatus']
+#data we want to plot
+#            probOP = S1['probabilityOfPrecip']
+#
+#            data = np.array(probOP[...])
+#            data_where = np.where(data==-99,np.nan,data)
+#            lat_data = np.array(S1['Latitude'])
+#            lat_where = np.where(lat_data==-9999.9,0,lat_data)
+#            lon_data = np.array(S1['Longitude'])
+#            lon_where = np.where(lon_data==-9999.9,0,lon_data)
+#            lat = np.mean(S1['Latitude'][...])
+#            lon = np.mean(S1['Longitude'][...])
+#            lon_min = np.min(S1['Longitude'][...])
+#            lat_min = np.min(S1['Latitude'][...])
+#            lon_max = np.max(S1['Longitude'][...])
+#            lat_max = np.max(S1['Latitude'][...])
+#            projection = ccrs.PlateCarree(central_longitude=0.0, globe=None)
+#
+#            ax = plt.subplot(projection=projection)
+#
+#            plt.pcolormesh(lon_where, lat_where, data_where, transform=ccrs.PlateCarree(), zorder=2)
+#
+#            ax.coastlines(zorder=3)
+#
+#plt.title('Probability of Precip Plot 1-Day')
+#plt.colorbar()
+#img = plt.show()
+
+print('Did it work?')
