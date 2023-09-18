@@ -57,3 +57,38 @@ with open('GMI_conversion_test.csv', 'w') as csvfile:
         filewriter.writerow([Latitude[i,50], Longitude[i,50], pixelStatus[i,50], qualityFlag[i,50], L1CqualityFlag[i,50], surfaceTypeIndex[i,50], totalColumnWaterVaporIndex[i,50], temp2mIndex[i,50], sunGlintAngle[i,50], probabilityOfPrecip[i,50], surfacePrecipitation[i,50], frozenPrecipitation[i,50], convectivePrecipitation[i,50], rainWaterPath[i,50], cloudWaterPath[i,50], iceWaterPath[i,50], precip1stTertial[i,50], precip2ndTertial[i,50], profileTemp2mIndex[i,50], profileNumber[i,50,0], profileNumber[i,50,1], profileNumber[i,50,2], profileNumber[i,50,3], profileNumber[i,50,4], profileScale[i,50,0], profileScale[i,50,1], profileScale[i,50,2], profileScale[i,50,3], profileScale[i,50,4], Year[i], Month[i], DayOfMonth[i], Hour[i], Minute[i], Second[i], MilliSecond[i], DayOfYear[i], SecondOfDay[i], SCorientation[i], SClatitude[i], SClongitude[i], SCaltitude[i], FractionalGranuleNumber[i]])
         
 print('Did it work?')    
+
+
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_test.csv'
+data = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+
+data.describe()
+
+TARGET_VAR = 'surfacePrecipitation'
+
+labels = data[TARGET_VAR]
+
+features = data.drop(TARGET_VAR, axis=1)
+feature_list = list(features.columns)
+
+print('Predictors = ' + str(feature_list))
+
+features = np.array(features)
+print('-----------------')
+print('Did it work?')
+
+#features = data.drop(TARGET_VAR)
+
+
+# Split the data into training and testing sets
+
+# Tunable Parameter: Describes the proportion of the dataset we want to use for testing. 1 - split_size is used for training.
+split_size = 0.1
+
+# PARAMETERS:
+#     test_size: fraction of testing/validation datasets
+#     random_state: random parameter
+train_features, val_features, train_labels, val_labels = train_test_split(
+    features, labels, test_size=split_size, random_state=42
+)
