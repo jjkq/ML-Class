@@ -1,7 +1,3 @@
-######################################
-# Machine Learning HW1 - Random Forest
-# Part 1 - Read Retrival Files -- GMI
-######################################
 import numpy as np
 import pandas as pd
 import scipy as sp
@@ -19,47 +15,107 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import export_graphviz
 from sklearn.inspection import permutation_importance
-#import pydot
+import xarray as xr
+import matplotlib.pyplot as plt
+import statistics as st
+import random
+import warnings
 
-basepath = '/pdata4/archive/GPM/2A-CLIM_GMI/2112/211201/'
 
-for x in range (0, 1):
-    for filename in os.listdir(basepath):
-        if filename.endswith('.HDF5'):
-            pfile = os.path.join(basepath, filename)
-            
-            data = pd.read_hdf(pfile)
-#reading GPROF data
-#            group = h5py.File(pfile, 'r')
-#            S0 = group['GprofDHeadr']
-#            S1 = group['S1']
-#            ST = group['ScanTime']
-#            SCs= group['SCstatus']
-#data we want to plot
-#            probOP = S1['probabilityOfPrecip']
-#
-#            data = np.array(probOP[...])
-#            data_where = np.where(data==-99,np.nan,data)
-#            lat_data = np.array(S1['Latitude'])
-#            lat_where = np.where(lat_data==-9999.9,0,lat_data)
-#            lon_data = np.array(S1['Longitude'])
-#            lon_where = np.where(lon_data==-9999.9,0,lon_data)
-#            lat = np.mean(S1['Latitude'][...])
-#            lon = np.mean(S1['Longitude'][...])
-#            lon_min = np.min(S1['Longitude'][...])
-#            lat_min = np.min(S1['Latitude'][...])
-#            lon_max = np.max(S1['Longitude'][...])
-#            lat_max = np.max(S1['Latitude'][...])
-#            projection = ccrs.PlateCarree(central_longitude=0.0, globe=None)
-#
-#            ax = plt.subplot(projection=projection)
-#
-#            plt.pcolormesh(lon_where, lat_where, data_where, transform=ccrs.PlateCarree(), zorder=2)
-#
-#            ax.coastlines(zorder=3)
-#
-#plt.title('Probability of Precip Plot 1-Day')
-#plt.colorbar()
-#img = plt.show()
+#load data
+GMI = h5py.File('/pdata4/archive/GPM/2A-CLIM_GMI/1810/181001/2A-CLIM.GPM.GMI.GPROF2017v1.20181001-S002201-E015435.026079.V05A.HDF5', 'r')
+
+S0 = GMI['GprofDHeadr']
+S1 = GMI['S1']
+ST = S1['ScanTime']
+SCs= S1['SCstatus']
+
+Latitude = S1['Latitude'][:]
+Longitude = S1['Longitude'][:]
+#sunLocalTime = S1['sunLocalTime']
+pixelStatus = S1['pixelStatus'][:]
+qualityFlag = S1['qualityFlag'][:]
+L1CqualityFlag = S1['L1CqualityFlag'][:]
+surfaceTypeIndex = S1['surfaceTypeIndex'][:]
+totalColumnWaterVaporIndex = S1['totalColumnWaterVaporIndex'][:]
+#airmassLiftIndex = S1['airmassLiftIndex']
+temp2mIndex = S1['temp2mIndex'][:]
+sunGlintAngle = S1['sunGlintAngle'][:]
+probabilityOfPrecip = S1['probabilityOfPrecip'][:]
+#preciptitationYesNoFlag = S1['preciptiationYesNoFlag']
+surfacePrecipitation = S1['surfacePrecipitation'][:]
+frozenPrecipitation = S1['frozenPrecipitation'][:]
+convectivePrecipitation = S1['convectivePrecipitation'][:]
+rainWaterPath = S1['rainWaterPath'][:]
+cloudWaterPath = S1['cloudWaterPath'][:]
+iceWaterPath = S1['iceWaterPath'][:]
+#mostlikelyPrecipitation = S1['mostlikelyPrecipitation']
+precip1stTertial = S1['precip1stTertial'][:]
+precip2ndTertial = S1['precip2ndTertial'][:]
+profileTemp2mIndex = S1['profileTemp2mIndex'][:]
+profileNumber = S1['profileNumber'][:]
+profileScale = S1['profileScale'][:]
+Year = ST['Year'][:]
+Month = ST['Month'][:]
+DayOfMonth = ST['DayOfMonth'][:]
+Hour = ST['Hour'][:]
+Minute = ST['Minute'][:]
+Second = ST['Second'][:]
+MilliSecond = ST['MilliSecond'][:]
+DayOfYear = ST['DayOfYear'][:]
+SecondOfDay = ST['SecondOfDay'][:]
+SCorientation = SCs['SCorientation'][:]
+SClatitude = SCs['SClatitude'][:]
+SClongitude = SCs['SClongitude'][:]
+SCaltitude = SCs['SCaltitude'][:]
+FractionalGranuleNumber = SCs['FractionalGranuleNumber'][:]
+
+print('beginning to create new HDF5')
+print('-----------------------------------')
+testf = h5py.File('HW1_singlef_test2.h5','w') #, libver=('earliest', 'v108'))
+#print('creating group')
+#print('-----------------------------------')
+#testg = testf.create_group("scan")
+#print('finished creating group')
+#print('-----------------------------------')
+print('beginning to create/fill file w/ data')
+print('-----------------------------------')
+testf.create_dataset('Latitude', data=Latitude)
+testf.create_dataset('Longitude', data=Longitude)
+testf.create_dataset('pixelStatus', data=pixelStatus)
+testf.create_dataset('qualityFlag', data=qualityFlag)
+testf.create_dataset('L1CqualityFlag', data=L1CqualityFlag)
+testf.create_dataset('surfaceTypeIndex', data=surfaceTypeIndex)
+testf.create_dataset('totalColumnWaterVaporIndex', data=totalColumnWaterVaporIndex)
+testf.create_dataset('temp2mIndex', data=temp2mIndex)
+testf.create_dataset('sunGlintAngle', data=sunGlintAngle)
+testf.create_dataset('probabilityOfPrecip', data=probabilityOfPrecip)
+testf.create_dataset('surfacePrecipitation', data=surfacePrecipitation)
+testf.create_dataset('frozenPrecipitation', data=frozenPrecipitation)
+testf.create_dataset('convectivePrecipitation', data=convectivePrecipitation)
+testf.create_dataset('rainWaterPath', data=rainWaterPath)
+testf.create_dataset('cloudWaterPath', data=cloudWaterPath)
+testf.create_dataset('iceWaterPath', data=iceWaterPath)
+testf.create_dataset('precip1stTertial', data=precip1stTertial)
+testf.create_dataset('precip2ndTertial', data=precip2ndTertial)
+testf.create_dataset('profileTemp2mIndex', data=profileTemp2mIndex)
+testf.create_dataset('profileNumber', data=profileNumber)
+testf.create_dataset('profileScale', data=profileScale)
+testf.create_dataset('Year', data=Year)
+testf.create_dataset('Month', data=Month)
+testf.create_dataset('DayOfMonth', data=DayOfMonth)
+testf.create_dataset('Hour', data=Hour)
+testf.create_dataset('Minute', data=Minute)
+testf.create_dataset('Second', data=Second)
+testf.create_dataset('MilliSecond', data=MilliSecond)
+testf.create_dataset('DayOfYear', data=DayOfYear)
+testf.create_dataset('SecondOfDay', data=SecondOfDay)
+testf.create_dataset('SCorientation', data=SCorientation)
+testf.create_dataset('SClatitude', data=SClatitude)
+testf.create_dataset('SClongitude', data=SClongitude)
+testf.create_dataset('SCaltitude', data=SCaltitude)
+testf.create_dataset('FractionalGranuleNumber', data=FractionalGranuleNumber)
+print('finished creating/filling dataset')
+print('-----------------------------------')
 
 print('Did it work?')
