@@ -1,0 +1,59 @@
+import csv
+
+lenx = len(SClatitude)
+header_list = ["Latitude", "Longitude", "pixelStatus", "qualityFlag", "L1CqualityFlag", "surfaceTypeIndex", "totalColumnWaterVaporIndex", "temp2mIndex", "sunGlintAngle", "probabilityOfPrecip", "surfacePrecipitation", "frozenPrecipitation", "convectivePrecipitation", "rainWaterPath", "cloudWaterPath", "iceWaterPath", "precip1stTertial", "precip2ndTertial", "profileTemp2mIndex", "profileNumber1", "profileNumber2", "profileNumber3", "profileNumber4", "profileNumber5", "profileScale1", "profileScale2", "profileScale3", "profileScale4", "profileScale5", "Year", "Month", "DayOfMonth", "Hour", "Minute", "Second", "MilliSecond", "DayOfYear", "SecondOfDay", "SCorientation", "SClatitude", "SClongitude", "SCaltitude", "FractionalGranuleNumber"]
+#data_rows = np.zeros([lenx,43])
+#for i in np.arange(0,lenx):
+#    data_rows[i,0] = Latitude[i,110]
+#    data_rows[i,1] = Longitude[i,110]
+#    data_rows[i,2] = pixelStatus[i,110]
+#    data_rows[i,3] = qualityFlag[i,110]
+#    data_rows[i,4] = L1CqualityFlag[i,110]
+#    data_rows[i,5] = surfaceTypeIndex[i,110]
+#    data_rows[i,6] = totalColumnWaterVaporIndex[i,110]
+#    data_rows[i,7] = temp2mIndex[i,110]
+#    data_rows[i,8] = sunGlintAngle[i,110]
+#    data_rows[i,9] = probabilityOfPrecip[i,110]
+#    data_rows[i,10] = surfacePrecipitation[i,110]
+#    data_rows[i,11] = frozenPrecipitation[i,110]
+#    data_rows[i,12] = convectivePrecipitation[i,110]
+#    data_rows[i,13] = rainWaterPath[i,110]
+#    data_rows[i,14] = cloudWaterPath[i,110]
+#    data_rows[i,15] = iceWaterPath[i,110]
+#    data_rows[i,16] = precip1stTertial[i,110]
+#    data_rows[i,17] = precip2ndTertial[i,110]
+#    data_rows[i,18] = profileTemp2mIndex[i,110]
+#    data_rows[i,19] = profileNumber[i,110,0]
+#    data_rows[i,20] = profileNumber[i,110,1]
+#    data_rows[i,21] = profileNumber[i,110,2]
+#    data_rows[i,22] = profileNumber[i,110,3]
+#    data_rows[i,23] = profileNumber[i,110,4]
+#    data_rows[i,24] = profileScale[i,110,0]
+#    data_rows[i,25] = profileScale[i,110,1]
+#    data_rows[i,26] = profileScale[i,110,2]
+#    data_rows[i,27] = profileScale[i,110,3]
+#    data_rows[i,28] = profileScale[i,110,4]
+#    data_rows[i,29] = Year[i]
+#    data_rows[i,30] = Month[i]
+#    data_rows[i,31] = DayOfMonth[i]
+#    data_rows[i,32] = Hour[i]
+#    data_rows[i,33] = Minute[i]
+#    data_rows[i,34] = Second[i]
+#    data_rows[i,35] = MilliSecond[i]
+#    data_rows[i,36] = DayOfYear[i]
+#    data_rows[i,37] = SecondOfDay[i]
+#    data_rows[i,38] = SCorientation[i]
+#    data_rows[i,39] = SClatitude[i]
+#    data_rows[i,40] = SClongitude[i]
+#    data_rows[i,41] = SCaltitude[i]
+#    data_rows[i,42] = FractionalGranuleNumber[i]
+
+
+with open('GMI_conversion_test.csv', 'w') as csvfile:
+    filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    filewriter.writerow(header_list)
+    filewriter.writerow(['Latitude', 'Longitude', 'pixelStatus', 'qualityFlag', 'L1CqualityFlag', 'surfaceTypeIndex', 'totalColumnWaterVaporIndex', 'temp2mIndex', 'sunGlintAngle', 'probabilityOfPrecip', 'surfacePrecipitation', 'frozenPrecipitation', 'convectivePrecipitation', 'rainWaterPath', 'cloudWaterPath', 'iceWaterPath', 'precip1stTertial', 'precip2ndTertial', 'profileTemp2mIndex', 'profileNumber1', 'profileNumber2', 'profileNumber3', 'profileNumber4', 'profileNumber5', 'profileScale1', 'profileScale2', 'profileScale3', 'profileScale4', 'profileScale5', 'Year', 'Month', 'DayOfMonth', 'Hour', 'Minute', 'Second', 'MilliSecond', 'DayOfYear', 'SecondOfDay', 'SCorientation', 'SClatitude', 'SClongitude', 'SCaltitude', 'FractionalGranuleNumber'])
+    for i in np.arange(0,lenx):
+        filewriter.writerow([Latitude[i,50], Longitude[i,50], pixelStatus[i,50], qualityFlag[i,50], L1CqualityFlag[i,50], surfaceTypeIndex[i,50], totalColumnWaterVaporIndex[i,50], temp2mIndex[i,50], sunGlintAngle[i,50], probabilityOfPrecip[i,50], surfacePrecipitation[i,50], frozenPrecipitation[i,50], convectivePrecipitation[i,50], rainWaterPath[i,50], cloudWaterPath[i,50], iceWaterPath[i,50], precip1stTertial[i,50], precip2ndTertial[i,50], profileTemp2mIndex[i,50], profileNumber[i,50,0], profileNumber[i,50,1], profileNumber[i,50,2], profileNumber[i,50,3], profileNumber[i,50,4], profileScale[i,50,0], profileScale[i,50,1], profileScale[i,50,2], profileScale[i,50,3], profileScale[i,50,4], Year[i], Month[i], DayOfMonth[i], Hour[i], Minute[i], Second[i], MilliSecond[i], DayOfYear[i], SecondOfDay[i], SCorientation[i], SClatitude[i], SClongitude[i], SCaltitude[i], FractionalGranuleNumber[i]])
+        
+print('Did it work?')    
