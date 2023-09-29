@@ -1,1 +1,1016 @@
+import numpy as np
+import pandas as pd
+import scipy as sp
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import h5py
+import os
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import export_graphviz
+from sklearn.inspection import permutation_importance
+import xarray as xr
+import matplotlib.pyplot as plt
+import statistics as st
+import random
+import warnings
+#import pydot
 
+sim_dir = '/qdata1/pbrown/dbaseV8/simV8/1810'
+#month = '1811'
+
+#print('Files Available:')
+#for ifile in os.listdir(sim_dir):
+#for ifile in os.listdir(sim_dir+'/'+month):
+#  print(ifile)
+    
+sim_fname = 'GMI.dbsatTb.20181001.026079.sim'
+sim_file = sim_dir+'/'+sim_fname
+#sim_file = sim_dir+month+'/'+sim_fname
+
+
+MHSfreqs = np.zeros(12,dtype='f')
+MHSviewangles   = np.zeros(15,dtype='f')
+
+with open(sim_file,'rb') as sfile:
+    
+    sat_id = sfile.read(5)
+    sensor = sfile.read(5)
+    
+    MHSfreqs         = np.fromfile(sfile, dtype='f', count=15)
+    MHSviewangles    = np.fromfile(sfile, dtype='f', count=15)
+
+    pix_start        = np.fromfile(sfile, dtype='i', count=1)
+    pix_end          = np.fromfile(sfile, dtype='i', count=1)
+    scan_start       = np.fromfile(sfile, dtype='i', count=1)
+    scan_end         = np.fromfile(sfile, dtype='i', count=1)
+
+    npix   = int(pix_end - pix_start)
+    nscans = int(scan_end - scan_start) #2963
+
+    print('File Header Info:')
+    print('---------------------------------------------------')
+    print(sat_id,sensor)
+    print('GMI Frequencies: ')
+    print(MHSfreqs)
+    print('GMI View Angles: ')
+    print(MHSviewangles)
+    print('')
+    print('Pix Start    = ', pix_start)
+    print('Pix End      = ', pix_end)
+    print('Scan Start   = ', scan_start)
+    print('Scan End     = ', scan_end)
+    print('----------------------------------------------------')
+
+    pix         = np.zeros(1, dtype='i')
+    scn         = np.zeros(1, dtype='i')
+    ds_fpa      = np.zeros([npix,nscans],dtype='f')
+    lats        = np.zeros([npix,nscans],dtype='f')
+    lons        = np.zeros([npix,nscans],dtype='f')
+    elev        = np.zeros([npix,nscans],dtype='f')
+    scan_time   = np.zeros([nscans,6],dtype='i')
+    sfc_type    = np.zeros([npix,nscans],dtype='i')
+    bsfc_precip = np.zeros([npix,nscans],dtype='f')
+    conv_precip = np.zeros([npix,nscans],dtype='f')
+    emiss_fpa   = np.zeros([13,npix,nscans],dtype='f')
+    mfill       = np.zeros(1, dtype='f')
+    rwc28       = np.zeros([28,npix,nscans],dtype='f')
+    swc28       = np.zeros([28,npix,nscans],dtype='f')
+    cwc28       = np.zeros([28,npix,nscans],dtype='f')
+    SLH28       = np.zeros([28,npix,nscans],dtype='f')
+    gTbsobs     = np.zeros([13,npix,nscans],dtype='f')
+    dTbssim_fpa = np.zeros([13,npix,nscans],dtype='f')
+    deltaTbs    = np.zeros([13,npix,nscans],dtype='f')
+    biasTbs     = np.zeros([13,npix,nscans],dtype='f')
+    mfill4      = np.zeros(4, dtype='f')
+
+    
+    
+    outer = 0
+
+    print('Beginning read loop...')
+
+    
+
+    for iscan in np.arange(0,nscans):
+        for ipix in np.arange(0,npix):
+            pix = np.fromfile(sfile, dtype='i', count=1)
+            scn = np.fromfile(sfile, dtype='i', count=1)
+#            print(pix)
+            
+#            print(scn)
+
+
+            if np.size(pix) == 0 :
+                last_pix = ipix - 1
+                last_scan = iscan
+                print('File end at scan, pixel = '+str(last_scan)+','+str(last_pix))
+                outer = 1
+                break
+
+            
+            ds_fpa[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            lats[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('lat : ', lats[ipix,iscan])
+            lons[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('lon : ', lons[ipix,iscan])
+            elev[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('elev : ', elev[ipix,iscan])
+            scan_time[iscan,0:6]      = np.fromfile(sfile, dtype='i', count=6)
+            #print('scan time : ', scan_time[iscan,...])
+            sfc_type[ipix,iscan]      = np.fromfile(sfile, dtype='i', count=1)
+            #print('surface type : ', sfc_type[ipix,iscan])
+            bsfc_precip[ipix,iscan] = np.fromfile(sfile, dtype='f', count=1)
+            #print('bsfc_precip : ', bsfc_precip[ipix,iscan])
+            mfill4 = np.fromfile(sfile, dtype='f', count=4)
+            conv_precip[ipix,iscan] = np.fromfile(sfile, dtype='f', count=1)
+            #print('conv_precip : ', conv_precip[ipix,iscan])
+            emiss_fpa[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            #print('emiss_fpa 1-5 : ', emiss_fpa[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            #print('mfill equals : ', mfill)
+            emiss_fpa[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            #print('emiss_fpa 6-11 : ', emiss_fpa[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            #print('mfill equals : ', mfill)
+            emiss_fpa[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            #print('emiss_fpa 12-13 : ', emiss_fpa[...,ipix,iscan])
+            rwc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('rwc28 : ', rwc28[...,ipix,iscan])
+            swc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('swc28 : ', swc28[...,ipix,iscan])
+            cwc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('cwc28 : ', cwc28[...,ipix,iscan])
+            SLH28[0:28,ipix,iscan]  = np.fromfile(sfile, dtype='f', count=28)
+            #print('SLH28 : ', SLH28[...,ipix,iscan])
+            gTbsobs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            #print('gTbsobs 1-5 : ', gTbsobs[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            gTbsobs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            #print('gTbsobs 6-11 : ', gTbsobs[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            gTbsobs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            #print('gTbsobs 12-13 : ', gTbsobs[...,ipix,iscan])
+            dTbssim_fpa[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            dTbssim_fpa[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            dTbssim_fpa[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            deltaTbs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            deltaTbs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            deltaTbs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            biasTbs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            biasTbs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            biasTbs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            
+            
+            exit
+            #stop
+
+            
+        if outer == 1:
+            break
+
+
+print('Finished read loop')
+
+print('Did it work?')
+
+################################################################################
+import csv
+
+lenx = last_scan
+#header_list = ["Latitude", "Longitude", "pixelStatus", "qualityFlag", "L1CqualityFlag", "surfaceTypeIndex", "totalColumnWaterVaporIndex", "temp2mIndex", "sunGlintAngle", "probabilityOfPrecip", "surfacePrecipitation", "frozenPrecipitation", "convectivePrecipitation", "rainWaterPath", "cloudWaterPath", "iceWaterPath", "precip1stTertial", "precip2ndTertial", "profileTemp2mIndex", "profileNumber1", "profileNumber2", "profileNumber3", "profileNumber4", "profileNumber5", "profileScale1", "profileScale2", "profileScale3", "profileScale4", "profileScale5", "Year", "Month", "DayOfMonth", "Hour", "Minute", "Second", "MilliSecond", "DayOfYear", "SecondOfDay", "SCorientation", "SClatitude", "SClongitude", "SCaltitude", "FractionalGranuleNumber", "dTbs"]
+header_list = ["Datasource_fpa", "Latitude", "Longitude", "Elevation","ScanTime1", "ScanTime2", "ScanTime3", "ScanTime4", "ScanTime5", "ScanTime6", "SurfaceType", "bSurfacePrecip", "cConvectivePrecip", "EmissFPA1", "EmissFPA2", "EmissFPA3", "EmissFPA4", "EmissFPA5", "EmissFPA6", "EmissFPA7", "EmissFPA8", "EmissFPA9", "EmissFPA10", "EmissFPA11", "EmissFPA12", "EmissFPA13", "rwc28_1", "rwc28_2", "rwc28_3", "rwc28_4", "rwc28_5", "rwc28_6", "rwc28_7", "rwc28_8", "rwc28_9", "rwc28_10", "rwc28_11", "rwc28_12", "rwc28_13", "rwc28_14", "rwc28_15", "rwc28_16", "rwc28_17", "rwc28_18", "rwc28_19", "rwc28_20", "rwc28_21", "rwc28_22", "rwc28_23", "rwc28_24", "rwc28_25", "rwc28_26", "rwc28_27", "rwc28_28", "swc28_1", "swc28_2", "swc28_3", "swc28_4", "swc28_5", "swc28_6", "swc28_7", "swc28_8", "swc28_9", "swc28_10", "swc28_11", "swc28_12", "swc28_13", "swc28_14", "swc28_15", "swc28_16", "swc28_17", "swc28_18", "swc28_19", "swc28_20", "swc28_21", "swc28_22", "swc28_23", "swc28_24", "swc28_25", "swc28_26", "swc28_27", "swc28_28", "cwc28_1", "cwc28_2", "cwc28_3", "cwc28_4", "cwc28_5", "cwc28_6", "cwc28_7", "cwc28_8", "cwc28_9", "cwc28_10", "cwc28_11", "cwc28_12", "cwc28_13", "cwc28_14", "cwc28_15", "cwc28_16", "cwc28_17", "cwc28_18", "cwc28_19", "cwc28_20", "cwc28_21", "cwc28_22", "cwc28_23", "cwc28_24", "cwc28_25", "cwc28_26", "cwc28_27", "cwc28_28", "SLH28_1", "SLH28_2", "SLH28_3", "SLH28_4", "SLH28_5", "SLH28_6", "SLH28_7", "SLH28_8", "SLH28_9", "SLH28_10", "SLH28_11", "SLH28_12", "SLH28_13", "SLH28_14", "SLH28_15", "SLH28_16", "SLH28_17", "SLH28_18", "SLH28_19", "SLH28_20", "SLH28_21", "SLH28_22", "SLH28_23", "SLH28_24", "SLH28_25", "SLH28_26", "SLH28_27", "SLH28_28", "gTbsOBS_1", "gTbsOBS_2", "gTbsOBS_3", "gTbsOBS_4", "gTbsOBS_5", "gTbsOBS_6", "gTbsOBS_7", "gTbsOBS_8", "gTbsOBS_9", "gTbsOBS_10", "gTbsOBS_11", "gTbsOBS_12", "gTbsOBS_13","dTbsSIM_1", "dTbsSIM_2", "dTbsSIM_3", "dTbsSIM_4", "dTbsSIM_5", "dTbsSIM_6", "dTbsSIM_7", "dTbsSIM_8", "dTbsSIM_9", "dTbsSIM_10", "dTbsSIM_11", "dTbsSIM_12", "dTbsSIM_13", "deltaTbs_1", "deltaTbs_2", "deltaTbs_3", "deltaTbs_4", "deltaTbs_5", "deltaTbs_6", "deltaTbs_7", "deltaTbs_8", "deltaTbs_9", "deltaTbs_10", "deltaTbs_11", "deltaTbs_12", "deltaTbs_13", "biasTbs_1", "biasTbs_2", "biasTbs_3", "biasTbs_4", "biasTbs_5", "biasTbs_6", "biasTbs_7", "biasTbs_8", "biasTbs_9", "biasTbs_10", "biasTbs_11", "biasTbs_12", "biasTbs_13"]
+
+with open('GMI_conversion_test.csv', 'w') as csvfile:
+    filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    filewriter.writerow(header_list)
+#    filewriter.writerow(['Latitude', 'Longitude', 'pixelStatus', 'qualityFlag', 'L1CqualityFlag', 'surfaceTypeIndex', 'totalColumnWaterVaporIndex', 'temp2mIndex', 'sunGlintAngle', 'probabilityOfPrecip', 'surfacePrecipitation', 'frozenPrecipitation', 'convectivePrecipitation', 'rainWaterPath', 'cloudWaterPath', 'iceWaterPath', 'precip1stTertial', 'precip2ndTertial', 'profileTemp2mIndex', 'profileNumber1', 'profileNumber2', 'profileNumber3', 'profileNumber4', 'profileNumber5', 'profileScale1', 'profileScale2', 'profileScale3', 'profileScale4', 'profileScale5', 'Year', 'Month', 'DayOfMonth', 'Hour', 'Minute', 'Second', 'MilliSecond', 'DayOfYear', 'SecondOfDay', 'SCorientation', 'SClatitude', 'SClongitude', 'SCaltitude', 'FractionalGranuleNumber'])
+    for i in np.arange(0,lenx):
+        #filewriter.writerow([Latitude[i,50], Longitude[i,50], pixelStatus[i,50], qualityFlag[i,50], L1CqualityFlag[i,50], surfaceTypeIndex[i,50], totalColumnWaterVaporIndex[i,50], temp2mIndex[i,50], sunGlintAngle[i,50], probabilityOfPrecip[i,50], surfacePrecipitation[i,50], frozenPrecipitation[i,50], convectivePrecipitation[i,50], rainWaterPath[i,50], cloudWaterPath[i,50], iceWaterPath[i,50], precip1stTertial[i,50], precip2ndTertial[i,50], profileTemp2mIndex[i,50], profileNumber[i,50,0], profileNumber[i,50,1], profileNumber[i,50,2], profileNumber[i,50,3], profileNumber[i,50,4], profileScale[i,50,0], profileScale[i,50,1], profileScale[i,50,2], profileScale[i,50,3], profileScale[i,50,4], Year[i], Month[i], DayOfMonth[i], Hour[i], Minute[i], Second[i], MilliSecond[i], DayOfYear[i], SecondOfDay[i], SCorientation[i], SClatitude[i], SClongitude[i], SCaltitude[i], FractionalGranuleNumber[i]])
+        filewriter.writerow([ds_fpa[10,i], lats[10,i], lons[10,i], elev[10,i], scan_time[i,0], scan_time[i,1], scan_time[i,2], scan_time[i,3], scan_time[i,4], scan_time[i,5], sfc_type[10,i], bsfc_precip[10,i], conv_precip[10,i], emiss_fpa[0,10,i], emiss_fpa[1,10,i], emiss_fpa[2,10,i], emiss_fpa[3,10,i], emiss_fpa[4,10,i], emiss_fpa[5,10,i], emiss_fpa[6,10,i], emiss_fpa[7,10,i], emiss_fpa[8,10,i], emiss_fpa[9,10,i], emiss_fpa[10,10,i], emiss_fpa[11,10,i], emiss_fpa[12,10,i], rwc28[0,10,i], rwc28[1,10,i], rwc28[2,10,i], rwc28[3,10,i], rwc28[4,10,i], rwc28[5,10,i], rwc28[6,10,i], rwc28[7,10,i], rwc28[8,10,i], rwc28[9,10,i], rwc28[10,10,i], rwc28[11,10,i], rwc28[12,10,i], rwc28[13,10,i], rwc28[14,10,i], rwc28[15,10,i], rwc28[16,10,i], rwc28[17,10,i], rwc28[18,10,i], rwc28[19,10,i], rwc28[20,10,i], rwc28[21,10,i], rwc28[22,10,i], rwc28[23,10,i], rwc28[24,10,i], rwc28[25,10,i], rwc28[26,10,i], rwc28[27,10,i], swc28[0,10,i], swc28[1,10,i], swc28[2,10,i], swc28[3,10,i], swc28[4,10,i], swc28[5,10,i], swc28[6,10,i], swc28[7,10,i], swc28[8,10,i], swc28[9,10,i], swc28[10,10,i], swc28[11,10,i], swc28[12,10,i], swc28[13,10,i], swc28[14,10,i], swc28[15,10,i], swc28[16,10,i], swc28[17,10,i], swc28[18,10,i], swc28[19,10,i], swc28[20,10,i], swc28[21,10,i], swc28[22,10,i], swc28[23,10,i], swc28[24,10,i], swc28[25,10,i], swc28[26,10,i], swc28[27,10,i],  cwc28[0,10,i], cwc28[1,10,i], cwc28[2,10,i], cwc28[3,10,i], cwc28[4,10,i], cwc28[5,10,i], cwc28[6,10,i], cwc28[7,10,i], cwc28[8,10,i], cwc28[9,10,i], cwc28[10,10,i], cwc28[11,10,i], cwc28[12,10,i], cwc28[13,10,i], cwc28[14,10,i], cwc28[15,10,i], cwc28[16,10,i], cwc28[17,10,i], cwc28[18,10,i], cwc28[19,10,i], cwc28[20,10,i], cwc28[21,10,i], cwc28[22,10,i], cwc28[23,10,i], cwc28[24,10,i], cwc28[25,10,i], cwc28[26,10,i], cwc28[27,10,i], SLH28[0,10,i], SLH28[1,10,i], SLH28[2,10,i], SLH28[3,10,i], SLH28[4,10,i], SLH28[5,10,i], SLH28[6,10,i], SLH28[7,10,i], SLH28[8,10,i], SLH28[9,10,i], SLH28[10,10,i], SLH28[11,10,i], SLH28[12,10,i], SLH28[13,10,i], SLH28[14,10,i], SLH28[15,10,i], SLH28[16,10,i], SLH28[17,10,i], SLH28[18,10,i], SLH28[19,10,i], SLH28[20,10,i], SLH28[21,10,i], SLH28[22,10,i], SLH28[23,10,i], SLH28[24,10,i], SLH28[25,10,i], SLH28[26,10,i], SLH28[27,10,i], gTbsobs[0,10,i], gTbsobs[1,10,i], gTbsobs[2,10,i], gTbsobs[3,10,i], gTbsobs[4,10,i], gTbsobs[5,10,i], gTbsobs[6,10,i], gTbsobs[7,10,i], gTbsobs[8,10,i], gTbsobs[9,10,i], gTbsobs[10,10,i], gTbsobs[11,10,i], gTbsobs[12,10,i], dTbssim_fpa[0,10,i], dTbssim_fpa[1,10,i], dTbssim_fpa[2,10,i], dTbssim_fpa[3,10,i], dTbssim_fpa[4,10,i], dTbssim_fpa[5,10,i], dTbssim_fpa[6,10,i], dTbssim_fpa[7,10,i], dTbssim_fpa[8,10,i], dTbssim_fpa[9,10,i], dTbssim_fpa[10,10,i], dTbssim_fpa[11,10,i], dTbssim_fpa[12,10,i], deltaTbs[0,10,i], deltaTbs[1,10,i], deltaTbs[2,10,i], deltaTbs[3,10,i], deltaTbs[4,10,i], deltaTbs[5,10,i], deltaTbs[6,10,i], deltaTbs[7,10,i], deltaTbs[8,10,i], deltaTbs[9,10,i], deltaTbs[10,10,i], deltaTbs[11,10,i], deltaTbs[12,10,i], biasTbs[0,10,i], biasTbs[1,10,i], biasTbs[2,10,i], biasTbs[3,10,i], biasTbs[4,10,i], biasTbs[5,10,i], biasTbs[6,10,i], biasTbs[7,10,i], biasTbs[8,10,i], biasTbs[9,10,i], biasTbs[10,10,i], biasTbs[11,10,i], biasTbs[12,10,i]])
+
+print(lenx)
+print('Did it work?')    
+################################################################################
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_test.csv'
+data = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+################################################################################
+data.describe()
+################################################################################
+TARGET_VAR = 'gTbsOBS_13'
+
+labels = np.array(data[TARGET_VAR])
+
+features = data.drop([TARGET_VAR, "gTbsOBS_1", "gTbsOBS_2", "gTbsOBS_3", "gTbsOBS_4", "gTbsOBS_5", "gTbsOBS_6", "gTbsOBS_7", "gTbsOBS_8", "gTbsOBS_9", "gTbsOBS_10", "gTbsOBS_11", "gTbsOBS_12", "dTbsSIM_1", "dTbsSIM_2", "dTbsSIM_3", "dTbsSIM_4", "dTbsSIM_5", "dTbsSIM_6", "dTbsSIM_7", "dTbsSIM_8", "dTbsSIM_9", "dTbsSIM_10", "dTbsSIM_11", "dTbsSIM_12", "deltaTbs_1", "deltaTbs_2", "deltaTbs_3", "deltaTbs_4", "deltaTbs_5", "deltaTbs_6", "deltaTbs_7", "deltaTbs_8", "deltaTbs_9", "deltaTbs_10", "deltaTbs_11", "deltaTbs_12", "deltaTbs_13", "biasTbs_1", "biasTbs_2", "biasTbs_3", "biasTbs_4", "biasTbs_5", "biasTbs_6", "biasTbs_7", "biasTbs_8", "biasTbs_9", "biasTbs_10", "biasTbs_11", "biasTbs_12", "biasTbs_13"], axis=1)
+#features = data.drop("gTbsOBS_1", axis=1)
+#features = data.drop("gTbsOBS_2", axis=1)
+#features = data.drop("gTbsOBS_3", axis=1)
+#features = data.drop("gTbsOBS_4", axis=1)
+#features = data.drop("gTbsOBS_5", axis=1)
+#features = data.drop("gTbsOBS_6", axis=1)
+#features = data.drop("gTbsOBS_7", axis=1)
+#features = data.drop("gTbsOBS_8", axis=1)
+#features = data.drop("gTbsOBS_9", axis=1)
+#features = data.drop("gTbsOBS_10", axis=1)
+#features = data.drop("gTbsOBS_11", axis=1)
+#features = data.drop("gTbsOBS_12", axis=1)
+
+#features = data.drop("dTbsSIM_13", axis=1)
+#features = data.drop("dTbsSIM_12", axis=1)
+#features = data.drop("dTbsSIM_11", axis=1)
+#features = data.drop("dTbsSIM_10", axis=1)
+#features = data.drop("dTbsSIM_9", axis=1)
+#features = data.drop("dTbsSIM_8", axis=1)
+#features = data.drop("dTbsSIM_7", axis=1)
+#features = data.drop("dTbsSIM_6", axis=1)
+#features = data.drop("dTbsSIM_5", axis=1)
+#features = data.drop("dTbsSIM_4", axis=1)
+#features = data.drop("dTbsSIM_3", axis=1)
+#features = data.drop("dTbsSIM_2", axis=1)
+#features = data.drop("dTbsSIM_1", axis=1)
+
+#features = data.drop("deltaTbs_13", axis=1)
+#features = data.drop("deltaTbs_12", axis=1)
+#features = data.drop("deltaTbs_11", axis=1)
+#features = data.drop("deltaTbs_10", axis=1)
+#features = data.drop("deltaTbs_9", axis=1)
+#features = data.drop("deltaTbs_8", axis=1)
+#features = data.drop("deltaTbs_7", axis=1)
+#features = data.drop("deltaTbs_6", axis=1)
+#features = data.drop("deltaTbs_5", axis=1)
+#features = data.drop("deltaTbs_4", axis=1)
+#features = data.drop("deltaTbs_3", axis=1)
+#features = data.drop("deltaTbs_2", axis=1)
+#features = data.drop("deltaTbs_1", axis=1)
+
+#features = data.drop("biasTbs_13", axis=1)
+#features = data.drop("biasTbs_12", axis=1)
+#features = data.drop("biasTbs_11", axis=1)
+#features = data.drop("biasTbs_10", axis=1)
+#features = data.drop("biasTbs_9", axis=1)
+#features = data.drop("biasTbs_8", axis=1)
+#features = data.drop("biasTbs_7", axis=1)
+#features = data.drop("biasTbs_6", axis=1)
+#features = data.drop("biasTbs_5", axis=1)
+#features = data.drop("biasTbs_4", axis=1)
+#features = data.drop("biasTbs_3", axis=1)
+#features = data.drop("biasTbs_2", axis=1)
+#features = data.drop("biasTbs_1", axis=1)
+
+feature_list = list(features.columns)
+
+print('Predictors = ' + str(feature_list))
+
+features = np.array(features)
+print('-----------------')
+print('Did it work?')
+
+#features = data.drop(TARGET_VAR)
+################################################################################
+# Split the data into training and testing sets
+
+# Tunable Parameter: Describes the proportion of the dataset we want to use for testing. 1 - split_size is used for training.
+split_size = 0.1
+
+# PARAMETERS:
+#     test_size: fraction of testing/validation datasets
+#     random_state: random parameter
+train_features, val_features, train_labels, val_labels = train_test_split(
+    features, labels, test_size=split_size, random_state=42
+)
+################################################################################
+print("Training Features Shape:", train_features.shape)
+print("Training Labels Shape:", train_labels.shape)
+print("Validation Features Shape:", val_features.shape)
+print("Validation Labels Shape:", val_labels.shape)
+################################################################################
+# You need a baseline to quantify whether the model is useful
+
+# The baseline predictions here are the climatological values
+# Grab all rows for the 'TMAX_CLIM' column
+baseline_preds = val_features[:, feature_list.index('dTbsSIM_13')]
+
+# Baseline errors (mean absolute errors)
+mae_baseline_errors = abs(baseline_preds - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+
+# Baseline errors (mean squared errors)
+mse_baseline_errors = np.sqrt(np.mean((baseline_preds - val_labels)**2))
+print('Baseline error (MSE): ', round(mse_baseline_errors, 2))
+################################################################################
+# Tunable Parameters for Model
+number_of_trees = 10
+tree_depth = None 
+node_split = 2       # minimum number of training samples needed to split a node
+leaf_samples = 1     # minimum number of training samples required to make a leaf node
+criterion = 'squared_error'    # variance reduction, alternatively 'mae'
+RAND_STATE = 42
+
+# Instantiate model with number of decision trees prescribed above
+# PARAMETERS:
+#     n_estimators: number of trees/ensembles
+#     random_state: random seed
+#     max_depth: maximum depth of each tree
+#     criterion: evaluation statistic to split a mode, 'mse'  or 'mae'
+#     min_samples_split: minimum number of samples needed to split a node
+#     min_samples_leaf: minimum number of samples needed to make a leaf
+#     for more, see: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor
+rf = RandomForestRegressor(n_estimators = number_of_trees, 
+                           random_state = RAND_STATE,
+                           min_samples_split = node_split,
+                           min_samples_leaf = leaf_samples,
+                           criterion = criterion,
+                           max_depth = tree_depth)
+
+# Train the model on training data
+rf.fit(train_features, train_labels)# You need a baseline to quantify whether the model is useful
+################################################################################
+# Use the forest's predict method on the test data
+predictions = rf.predict(val_features)
+
+# Use testing set to validate the performance
+# Print out the mean absolute error (MAE)
+mae_errors = abs(predictions - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+
+# See its performance (mean squared errors)
+mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+def split_size_impact(sizes=[0.25,0.5]):
+
+    for size in sizes:
+
+        split_size = size
+        train_features, val_features, train_labels, val_labels = train_test_split(features, labels, test_size = split_size, random_state = RAND_STATE)
+        number_of_trees = 10
+        tree_depth = None 
+        node_split = 2       # minimum number of training samples needed to split a node
+        leaf_samples = 1     # minimum number of training samples required to make a leaf node
+        criterion = 'squared_error'    # variance reduction, alternatively 'mae'
+        rf = RandomForestRegressor(n_estimators = number_of_trees, 
+                               random_state = RAND_STATE,
+                               min_samples_split = node_split,
+                               min_samples_leaf = leaf_samples,
+                               criterion = criterion,
+                               max_depth = tree_depth)
+        rf.fit(train_features, train_labels);
+
+        predictions = rf.predict(val_features)
+
+        print('Split size: ',size)
+        mae_errors = abs(predictions - val_labels)
+        print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+        print('Error (MAE): ', round(np.mean(mae_errors), 2))
+
+        mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+        print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+        print('Error (MSE): ', round(mse_errors, 2))
+        print('')
+################################################################################
+split_size_impact(sizes=np.arange(0.1,0.8,0.05))
+################################################################################
+# Started with 10
+number_of_trees = 60
+tree_depth = None
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(train_features, train_labels)
+predictions = rf.predict(val_features)
+mae_errors = abs(predictions - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+#Default was None
+tree_depth = 15
+number_of_trees = 60
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(train_features, train_labels);
+predictions = rf.predict(val_features)
+mae_errors = abs(predictions - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+# Default = 'squared_error'
+criterion = 'squared_error'
+number_of_trees = 60
+tree_depth = 15
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(train_features, train_labels);
+predictions = rf.predict(val_features)
+mae_errors = abs(predictions - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+# Default = 2
+node_split = 2
+number_of_trees = 60
+tree_depth = 15
+criterion = 'squared_error'
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(train_features, train_labels);
+predictions = rf.predict(val_features)
+mae_errors = abs(predictions - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+# Default = 1
+leaf_samples = 23
+node_split = 2
+number_of_trees = 60
+tree_depth = 15
+criterion = 'squared_error'
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(train_features, train_labels);
+predictions = rf.predict(val_features)
+mae_errors = abs(predictions - val_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - val_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+# Split the data into training and testing sets
+split_size = 0.1      # chunk size for testing
+train_length = 0.9    # chunk size for training
+num_cv = 10             # number of cross-validation tests
+
+cv_train_features = []
+cv_train_labels = []
+cv_test_features = []
+cv_test_labels = []
+
+for i in range(0,num_cv):
+    if i == (num_cv - 1):  # last chunk is for testing
+        cv_train_features.append(features[:round(len(features[:,0]) * train_length)])
+        cv_train_labels.append(labels[:round(len(features[:,0]) * train_length)])
+
+        cv_test_features.append(features[round(len(features[:,0]) * train_length):])
+        cv_test_labels.append(labels[round(len(features[:,0]) * train_length):])
+    elif i == 0:          # first chunk is for testing
+        cv_train_features.append(features[round(len(features[:,0])*split_size):])
+        cv_train_labels.append(labels[round(len(features[:,0])*split_size):])
+
+        cv_test_features.append(features[:round(len(features[:,0])*split_size)])
+        cv_test_labels.append(labels[:round(len(features[:,0])*split_size)])
+    else:                 # chunk is in the middle of training dataset
+        chunk_size = round(len(features[:,0]) * split_size)
+        first_chunk = features[:(i*chunk_size)]
+        second_chunk = features[((i+1)*chunk_size):]
+
+        cv_train_features.append(np.concatenate((first_chunk, second_chunk),axis=0))
+        cv_train_labels.append(np.append(labels[:(i * chunk_size)], labels[(i + 1) * chunk_size:]))
+
+        cv_test_features.append(features[(i * chunk_size):(i + 1) * chunk_size])
+        cv_test_labels.append(labels[(i * chunk_size):(i + 1) * chunk_size])
+
+    print('Chunk :',(i+1))
+    print('Training Features Shape:', cv_train_features[i].shape)
+    print('Training Labels Shape:', cv_train_labels[i].shape)
+    print('Testing Features Shape:', cv_test_features[i].shape)
+    print('Testing Labels Shape:', cv_test_labels[i].shape)
+################################################################################
+leaf_samples = 23
+node_split = 2
+number_of_trees = 60
+tree_depth = 15
+criterion = 'squared_error'
+
+cv_predictions = []
+for i in range(0,num_cv):
+    cv_rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+    cv_rf.fit(cv_train_features[i], cv_train_labels[i]);
+    i_predictions = cv_rf.predict(cv_test_features[i])
+    cv_predictions.append(i_predictions)
+    mae_errors = abs(i_predictions - cv_test_labels[i])
+    print('Model :',(i+1))
+    print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+    print('Error (MAE): ', round(np.mean(mae_errors), 2))
+    mse_errors = np.sqrt(np.mean((i_predictions - cv_test_labels[i])**2))
+    print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+    print('Error (MSE): ', round(mse_errors, 2))
+    print('')
+################################################################################
+def plot_time_series(features, feature_list, labels, val_features, predictions):
+    # Use datetime for creating date objects for plotting
+    # Dates of training values
+    months = features[:, feature_list.index('ScanTime4')]
+    days = features[:, feature_list.index('ScanTime5')]
+    years = features[:, feature_list.index('ScanTime3')]
+    # List and then convert to datetime object
+    dates = [str(int(year)) + '-' + str(int(month)) + '-' + str(int(day)) for year, month, day in zip(years, months, days)]
+    #dates = [datetime.datetime.strptime(date, '%Y-%m-%d') for date in dates]
+    dates = [datetime.datetime.strptime(date, '%d-%H-%M') for date in dates]
+    # Dataframe with true values and dates
+    true_data = pd.DataFrame(data = {'date': dates, 'gTbsOBS_13': labels})
+    # Dates of predictions
+    months = val_features[:, feature_list.index('ScanTime4')]
+    days = val_features[:, feature_list.index('ScanTime5')]
+    years = val_features[:, feature_list.index('ScanTime3')]
+    # Column of dates
+    test_dates = [str(int(year)) + '-' + str(int(month)) + '-' + str(int(day)) for year, month, day in zip(years, months, days)]
+    # Convert to datetime objects
+    #test_dates = [datetime.datetime.strptime(date, '%Y-%m-%d') for date in test_dates]
+    test_dates = [datetime.datetime.strptime(date, '%d-%H-%M') for date in test_dates]
+    # Dataframe with predictions and dates
+    predictions_data = pd.DataFrame(data = {'date': test_dates, 'prediction': predictions})
+    # Plot the actual values
+    plt.plot(true_data['date'], true_data['gTbsOBS_13'], 'b-', label = 'gTbsOBS_13')
+    # Plot the predicted values
+    plt.plot(predictions_data['date'], predictions_data['prediction'], 'ro', label = 'prediction')
+    plt.xticks(rotation = 60)
+    plt.legend()
+    # Graph labels
+    plt.xlabel('Date'); plt.ylabel('Brightness Temperature (K)'); plt.title('Actual and Predicted Values');
+    plt.show()
+################################################################################
+# Use datetime for creating date objects for plotting
+# Dates of training values
+plot_time_series(features, feature_list, labels, val_features, predictions)
+################################################################################
+for i in range(0, num_cv):
+    print('Model: ',(i+1))
+    plot_time_series(features, feature_list, labels, cv_test_features[i], cv_predictions[i])
+################################################################################
+def calc_importances(rf, feature_list):
+
+    # Get numerical feature importances
+    importances = list(rf.feature_importances_)
+
+    # List of tuples with variable and importance
+    feature_importances = [(feature, round(importance, 2)) for feature, importance in zip(feature_list, importances)]
+
+    # Sort the feature importances by most important first
+    feature_importances = sorted(feature_importances, key = lambda x: x[1], reverse = True)
+
+    # Print out the feature and importances 
+    [print('Variable: {:20} Importance: {}'.format(*pair)) for pair in feature_importances];
+
+    return importances
+################################################################################
+def plot_feat_importances(importances, feature_list): 
+    plt.figure()
+    # Set the style
+    plt.style.use('fivethirtyeight')
+    # list of x locations for plotting
+    x_values = list(range(len(importances)))
+    # Make a bar chart
+    plt.barh(x_values, importances)
+    # Tick labels for x axis
+    plt.yticks(x_values, feature_list)
+    # Axis labels and title
+    plt.xlabel('Importance'); plt.ylabel('Variable'); plt.title('Variable Importances')
+################################################################################
+plot_feat_importances(calc_importances(rf, feature_list), feature_list)
+################################################################################
+# Single-pass permutation
+permute = permutation_importance(rf, val_features, val_labels, n_repeats=10, 
+                                 random_state=42)
+
+# Sort the importances
+sorted_idx = permute.importances_mean.argsort()
+################################################################################
+def plot_perm_importances(permute, sorted_idx, feature_list):
+  # Sort the feature list based on 
+
+    new_feature_list = []
+    for index in sorted_idx:  
+        new_feature_list.append(feature_list[index])
+
+    fig, ax = plt.subplots()
+    ax.boxplot(permute.importances[sorted_idx].T,
+           vert=False, labels=new_feature_list)
+    ax.set_title("Permutation Importances")
+    fig.tight_layout()
+################################################################################
+plot_perm_importances(permute, sorted_idx, feature_list)
+################################################################################
+permute = permutation_importance(rf, train_features, train_labels, n_repeats=10, random_state=42)
+sorted_idx = permute.importances_mean.argsort()
+
+plot_perm_importances(permute, sorted_idx, feature_list)
+################################################################################
+def plot_features(features, variables=['gTbsOBS_13','dTbsSIM_13']):
+    # Make the data accessible for plotting
+    # Dates of training values
+    months = features[:, feature_list.index('ScanTime4')]
+    days = features[:, feature_list.index('ScanTime5')]
+    years = features[:, feature_list.index('ScanTime3')]
+    # List and then convert to datetime object
+    dates = [str(int(year)) + '-' + str(int(month)) + '-' + str(int(day)) for year, month, day in zip(years, months, days)]
+    dates = [datetime.datetime.strptime(date, '%d-%H-%M') for date in dates]
+    # Make the data accessible for plotting
+    true_data = pd.DataFrame(data = {'date': dates, 'gTbsOBS_13': labels})
+    true_data[variables[1]] = features[:, feature_list.index(variables[1])]
+    true_data[variables[2]] = features[:, feature_list.index(variables[2])]
+    true_data[variables[3]] = features[:, feature_list.index(variables[3])]
+    # Plot all the data as lines
+    plt.plot(true_data['date'], true_data['gTbsOBS_13'], 'b-', label  = 'gTbsOBS_13', alpha = 1.0)
+    plt.plot(true_data['date'], true_data[variables[1]], 'y-', label  = variables[1], alpha = 1.0)
+    plt.plot(true_data['date'], true_data[variables[2]], 'k-', label = variables[2], alpha = 0.8)
+    plt.plot(true_data['date'], true_data[variables[3]], 'r-', label = variables[3], alpha = 0.3)
+    # Formatting plot
+    plt.legend(); 
+    plt.xticks(rotation = 60)
+    # Lables and title
+    plt.xlabel('Date'); plt.ylabel('Brightness Temperature (K)'); plt.title('Actual Brightness Temperature & Variables')
+################################################################################
+plot_features(features)
+################################################################################
+plot_features(features, variables=['gTbsOBS_13','dTbsSIM_13','bSurfacePrecip', 'cConvectivePrecip'])
+################################################################################
+leaf_samples = 23
+node_split = 2
+number_of_trees = 60
+tree_depth = 15
+criterion = 'squared_error'
+
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_test.csv'
+data = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+
+
+TARGET_VAR = 'gTbsOBS_13'
+
+labels = np.array(data[TARGET_VAR])
+
+features = data.drop([TARGET_VAR, "gTbsOBS_1", "gTbsOBS_2", "gTbsOBS_3", "gTbsOBS_4", "gTbsOBS_5", "gTbsOBS_6", "gTbsOBS_7", "gTbsOBS_8", "gTbsOBS_9", "gTbsOBS_10", "gTbsOBS_11", "gTbsOBS_12", "dTbsSIM_1", "dTbsSIM_2", "dTbsSIM_3", "dTbsSIM_4", "dTbsSIM_5", "dTbsSIM_6", "dTbsSIM_7", "dTbsSIM_8", "dTbsSIM_9", "dTbsSIM_10", "dTbsSIM_11", "dTbsSIM_12", "deltaTbs_1", "deltaTbs_2", "deltaTbs_3", "deltaTbs_4", "deltaTbs_5", "deltaTbs_6", "deltaTbs_7", "deltaTbs_8", "deltaTbs_9", "deltaTbs_10", "deltaTbs_11", "deltaTbs_12", "deltaTbs_13", "biasTbs_1", "biasTbs_2", "biasTbs_3", "biasTbs_4", "biasTbs_5", "biasTbs_6", "biasTbs_7", "biasTbs_8", "biasTbs_9", "biasTbs_10", "biasTbs_11", "biasTbs_12", "biasTbs_13"], axis=1)
+
+
+feature_list = list(features.columns)
+
+print('Predictors = ' + str(feature_list))
+
+features = np.array(features)
+print('-----------------')
+print('Did it work?')
+
+#features = data.drop(TARGET_VAR)
+#Reload in features to clean things up a bit 
+#features = pd.read_csv(url)
+#features = features.drop('TMAX', axis = 1)
+#features = features.drop('TMAX_BD', axis = 1)
+
+#feature_list = list(features.columns)
+#features = np.array(features)
+train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = split_size, random_state = 42)
+
+# New random forest with only the two most important variables
+rf_most_important = RandomForestRegressor(n_estimators = number_of_trees, 
+                                          random_state = 42,
+                                          min_samples_split = node_split,
+                                          min_samples_leaf = leaf_samples,
+                                          criterion = criterion,
+                                          max_depth = tree_depth)
+
+# Use the top 4 predictors, as determined by feature importance
+important_indices = [feature_list.index('dTbsSIM_13'), feature_list.index('Datasource_fpa'), feature_list.index('Latitude'), feature_list.index('Longitude')]
+train_important = train_features[:, important_indices]
+test_important = test_features[:, important_indices]
+# Train the random forest
+rf_most_important.fit(train_important, train_labels)
+# Make predictions
+predictions = rf_most_important.predict(test_important)
+# Display the performance metrics
+errors = np.sqrt(np.mean((predictions - test_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(errors, 2))
+################################################################################
+print(sorted_idx)
+################################################################################
+leaf_samples = 23
+node_split = 2
+number_of_trees = 60
+tree_depth = 15
+criterion = 'squared_error'
+
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_test.csv'
+data = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+
+
+TARGET_VAR = 'gTbsOBS_13'
+
+labels = np.array(data[TARGET_VAR])
+
+features = data.drop([TARGET_VAR, "gTbsOBS_1", "gTbsOBS_2", "gTbsOBS_3", "gTbsOBS_4", "gTbsOBS_5", "gTbsOBS_6", "gTbsOBS_7", "gTbsOBS_8", "gTbsOBS_9", "gTbsOBS_10", "gTbsOBS_11", "gTbsOBS_12", "dTbsSIM_1", "dTbsSIM_2", "dTbsSIM_3", "dTbsSIM_4", "dTbsSIM_5", "dTbsSIM_6", "dTbsSIM_7", "dTbsSIM_8", "dTbsSIM_9", "dTbsSIM_10", "dTbsSIM_11", "dTbsSIM_12", "deltaTbs_1", "deltaTbs_2", "deltaTbs_3", "deltaTbs_4", "deltaTbs_5", "deltaTbs_6", "deltaTbs_7", "deltaTbs_8", "deltaTbs_9", "deltaTbs_10", "deltaTbs_11", "deltaTbs_12", "deltaTbs_13", "biasTbs_1", "biasTbs_2", "biasTbs_3", "biasTbs_4", "biasTbs_5", "biasTbs_6", "biasTbs_7", "biasTbs_8", "biasTbs_9", "biasTbs_10", "biasTbs_11", "biasTbs_12", "biasTbs_13"], axis=1)
+
+
+feature_list = list(features.columns)
+
+print('Predictors = ' + str(feature_list))
+
+features = np.array(features)
+print('-----------------')
+print('Did it work?')
+
+train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size = split_size, random_state = 42)
+
+# New random forest with only the two most important variables
+rf_most_important = RandomForestRegressor(n_estimators = number_of_trees, 
+                                          random_state = 42,
+                                          min_samples_split = node_split,
+                                          min_samples_leaf = leaf_samples,
+                                          criterion = criterion,
+                                          max_depth = tree_depth)
+
+# Use the top 4 predictors, as determined by permutation importance
+important_indices = [feature_list.index('SLH28_17'), feature_list.index('cwc28_9'), feature_list.index('cwc28_8'), feature_list.index('dTbsSIM_13')]
+train_important = train_features[:, important_indices]
+test_important = test_features[:, important_indices]
+# Train the random forest
+rf_most_important.fit(train_important, train_labels)
+# Make predictions
+predictions = rf_most_important.predict(test_important)
+# Display the performance metrics
+errors = np.sqrt(np.mean((predictions - test_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(errors, 2))
+################################################################################
+import numpy as np
+import pandas as pd
+import scipy as sp
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import h5py
+import os
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import export_graphviz
+from sklearn.inspection import permutation_importance
+import xarray as xr
+import matplotlib.pyplot as plt
+import statistics as st
+import random
+import warnings
+#import pydot
+
+sim_dir = '/qdata1/pbrown/dbaseV8/simV8/1810'
+#month = '1811'
+
+#print('Files Available:')
+#for ifile in os.listdir(sim_dir):
+#for ifile in os.listdir(sim_dir+'/'+month):
+#  print(ifile)
+    
+sim_fname = 'GMI.dbsatTb.20181001.026080.sim'
+sim_file = sim_dir+'/'+sim_fname
+#sim_file = sim_dir+month+'/'+sim_fname
+
+
+MHSfreqs = np.zeros(12,dtype='f')
+MHSviewangles   = np.zeros(15,dtype='f')
+
+with open(sim_file,'rb') as sfile:
+    
+    sat_id = sfile.read(5)
+    sensor = sfile.read(5)
+    
+    MHSfreqs         = np.fromfile(sfile, dtype='f', count=15)
+    MHSviewangles    = np.fromfile(sfile, dtype='f', count=15)
+
+    pix_start        = np.fromfile(sfile, dtype='i', count=1)
+    pix_end          = np.fromfile(sfile, dtype='i', count=1)
+    scan_start       = np.fromfile(sfile, dtype='i', count=1)
+    scan_end         = np.fromfile(sfile, dtype='i', count=1)
+
+    npix   = int(pix_end - pix_start)
+    nscans = int(scan_end - scan_start) #2963
+
+    print('File Header Info:')
+    print('---------------------------------------------------')
+    print(sat_id,sensor)
+    print('GMI Frequencies: ')
+    print(MHSfreqs)
+    print('GMI View Angles: ')
+    print(MHSviewangles)
+    print('')
+    print('Pix Start    = ', pix_start)
+    print('Pix End      = ', pix_end)
+    print('Scan Start   = ', scan_start)
+    print('Scan End     = ', scan_end)
+    print('----------------------------------------------------')
+
+    pix         = np.zeros(1, dtype='i')
+    scn         = np.zeros(1, dtype='i')
+    ds_fpa      = np.zeros([npix,nscans],dtype='f')
+    lats        = np.zeros([npix,nscans],dtype='f')
+    lons        = np.zeros([npix,nscans],dtype='f')
+    elev        = np.zeros([npix,nscans],dtype='f')
+    scan_time   = np.zeros([nscans,6],dtype='i')
+    sfc_type    = np.zeros([npix,nscans],dtype='i')
+    bsfc_precip = np.zeros([npix,nscans],dtype='f')
+    conv_precip = np.zeros([npix,nscans],dtype='f')
+    emiss_fpa   = np.zeros([13,npix,nscans],dtype='f')
+    mfill       = np.zeros(1, dtype='f')
+    rwc28       = np.zeros([28,npix,nscans],dtype='f')
+    swc28       = np.zeros([28,npix,nscans],dtype='f')
+    cwc28       = np.zeros([28,npix,nscans],dtype='f')
+    SLH28       = np.zeros([28,npix,nscans],dtype='f')
+    gTbsobs     = np.zeros([13,npix,nscans],dtype='f')
+    dTbssim_fpa = np.zeros([13,npix,nscans],dtype='f')
+    deltaTbs    = np.zeros([13,npix,nscans],dtype='f')
+    biasTbs     = np.zeros([13,npix,nscans],dtype='f')
+    mfill4      = np.zeros(4, dtype='f')
+
+    
+    
+    outer = 0
+
+    print('Beginning read loop...')
+
+    
+
+    for iscan in np.arange(0,nscans):
+        for ipix in np.arange(0,npix):
+            pix = np.fromfile(sfile, dtype='i', count=1)
+            scn = np.fromfile(sfile, dtype='i', count=1)
+#            print(pix)
+            
+#            print(scn)
+
+
+            if np.size(pix) == 0 :
+                last_pix = ipix - 1
+                last_scan = iscan
+                print('File end at scan, pixel = '+str(last_scan)+','+str(last_pix))
+                outer = 1
+                break
+
+            
+            ds_fpa[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            lats[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('lat : ', lats[ipix,iscan])
+            lons[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('lon : ', lons[ipix,iscan])
+            elev[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('elev : ', elev[ipix,iscan])
+            scan_time[iscan,0:6]      = np.fromfile(sfile, dtype='i', count=6)
+            #print('scan time : ', scan_time[iscan,...])
+            sfc_type[ipix,iscan]      = np.fromfile(sfile, dtype='i', count=1)
+            #print('surface type : ', sfc_type[ipix,iscan])
+            bsfc_precip[ipix,iscan] = np.fromfile(sfile, dtype='f', count=1)
+            #print('bsfc_precip : ', bsfc_precip[ipix,iscan])
+            mfill4 = np.fromfile(sfile, dtype='f', count=4)
+            conv_precip[ipix,iscan] = np.fromfile(sfile, dtype='f', count=1)
+            #print('conv_precip : ', conv_precip[ipix,iscan])
+            emiss_fpa[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            #print('emiss_fpa 1-5 : ', emiss_fpa[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            #print('mfill equals : ', mfill)
+            emiss_fpa[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            #print('emiss_fpa 6-11 : ', emiss_fpa[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            #print('mfill equals : ', mfill)
+            emiss_fpa[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            #print('emiss_fpa 12-13 : ', emiss_fpa[...,ipix,iscan])
+            rwc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('rwc28 : ', rwc28[...,ipix,iscan])
+            swc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('swc28 : ', swc28[...,ipix,iscan])
+            cwc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('cwc28 : ', cwc28[...,ipix,iscan])
+            SLH28[0:28,ipix,iscan]  = np.fromfile(sfile, dtype='f', count=28)
+            #print('SLH28 : ', SLH28[...,ipix,iscan])
+            gTbsobs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            #print('gTbsobs 1-5 : ', gTbsobs[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            gTbsobs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            #print('gTbsobs 6-11 : ', gTbsobs[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            gTbsobs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            #print('gTbsobs 12-13 : ', gTbsobs[...,ipix,iscan])
+            dTbssim_fpa[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            dTbssim_fpa[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            dTbssim_fpa[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            deltaTbs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            deltaTbs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            deltaTbs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            biasTbs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            biasTbs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            biasTbs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            
+            
+            exit
+            #stop
+
+            
+        if outer == 1:
+            break
+
+
+print('Finished read loop')
+
+print('Did it work?')
+################################################################################
+import csv
+
+lenx = last_scan
+#header_list = ["Latitude", "Longitude", "pixelStatus", "qualityFlag", "L1CqualityFlag", "surfaceTypeIndex", "totalColumnWaterVaporIndex", "temp2mIndex", "sunGlintAngle", "probabilityOfPrecip", "surfacePrecipitation", "frozenPrecipitation", "convectivePrecipitation", "rainWaterPath", "cloudWaterPath", "iceWaterPath", "precip1stTertial", "precip2ndTertial", "profileTemp2mIndex", "profileNumber1", "profileNumber2", "profileNumber3", "profileNumber4", "profileNumber5", "profileScale1", "profileScale2", "profileScale3", "profileScale4", "profileScale5", "Year", "Month", "DayOfMonth", "Hour", "Minute", "Second", "MilliSecond", "DayOfYear", "SecondOfDay", "SCorientation", "SClatitude", "SClongitude", "SCaltitude", "FractionalGranuleNumber", "dTbs"]
+header_list = ["Datasource_fpa", "Latitude", "Longitude", "Elevation","ScanTime1", "ScanTime2", "ScanTime3", "ScanTime4", "ScanTime5", "ScanTime6", "SurfaceType", "bSurfacePrecip", "cConvectivePrecip", "EmissFPA1", "EmissFPA2", "EmissFPA3", "EmissFPA4", "EmissFPA5", "EmissFPA6", "EmissFPA7", "EmissFPA8", "EmissFPA9", "EmissFPA10", "EmissFPA11", "EmissFPA12", "EmissFPA13", "rwc28_1", "rwc28_2", "rwc28_3", "rwc28_4", "rwc28_5", "rwc28_6", "rwc28_7", "rwc28_8", "rwc28_9", "rwc28_10", "rwc28_11", "rwc28_12", "rwc28_13", "rwc28_14", "rwc28_15", "rwc28_16", "rwc28_17", "rwc28_18", "rwc28_19", "rwc28_20", "rwc28_21", "rwc28_22", "rwc28_23", "rwc28_24", "rwc28_25", "rwc28_26", "rwc28_27", "rwc28_28", "swc28_1", "swc28_2", "swc28_3", "swc28_4", "swc28_5", "swc28_6", "swc28_7", "swc28_8", "swc28_9", "swc28_10", "swc28_11", "swc28_12", "swc28_13", "swc28_14", "swc28_15", "swc28_16", "swc28_17", "swc28_18", "swc28_19", "swc28_20", "swc28_21", "swc28_22", "swc28_23", "swc28_24", "swc28_25", "swc28_26", "swc28_27", "swc28_28", "cwc28_1", "cwc28_2", "cwc28_3", "cwc28_4", "cwc28_5", "cwc28_6", "cwc28_7", "cwc28_8", "cwc28_9", "cwc28_10", "cwc28_11", "cwc28_12", "cwc28_13", "cwc28_14", "cwc28_15", "cwc28_16", "cwc28_17", "cwc28_18", "cwc28_19", "cwc28_20", "cwc28_21", "cwc28_22", "cwc28_23", "cwc28_24", "cwc28_25", "cwc28_26", "cwc28_27", "cwc28_28", "SLH28_1", "SLH28_2", "SLH28_3", "SLH28_4", "SLH28_5", "SLH28_6", "SLH28_7", "SLH28_8", "SLH28_9", "SLH28_10", "SLH28_11", "SLH28_12", "SLH28_13", "SLH28_14", "SLH28_15", "SLH28_16", "SLH28_17", "SLH28_18", "SLH28_19", "SLH28_20", "SLH28_21", "SLH28_22", "SLH28_23", "SLH28_24", "SLH28_25", "SLH28_26", "SLH28_27", "SLH28_28", "gTbsOBS_1", "gTbsOBS_2", "gTbsOBS_3", "gTbsOBS_4", "gTbsOBS_5", "gTbsOBS_6", "gTbsOBS_7", "gTbsOBS_8", "gTbsOBS_9", "gTbsOBS_10", "gTbsOBS_11", "gTbsOBS_12", "gTbsOBS_13","dTbsSIM_1", "dTbsSIM_2", "dTbsSIM_3", "dTbsSIM_4", "dTbsSIM_5", "dTbsSIM_6", "dTbsSIM_7", "dTbsSIM_8", "dTbsSIM_9", "dTbsSIM_10", "dTbsSIM_11", "dTbsSIM_12", "dTbsSIM_13", "deltaTbs_1", "deltaTbs_2", "deltaTbs_3", "deltaTbs_4", "deltaTbs_5", "deltaTbs_6", "deltaTbs_7", "deltaTbs_8", "deltaTbs_9", "deltaTbs_10", "deltaTbs_11", "deltaTbs_12", "deltaTbs_13", "biasTbs_1", "biasTbs_2", "biasTbs_3", "biasTbs_4", "biasTbs_5", "biasTbs_6", "biasTbs_7", "biasTbs_8", "biasTbs_9", "biasTbs_10", "biasTbs_11", "biasTbs_12", "biasTbs_13"]
+
+with open('GMI_conversion_final.csv', 'w') as csvfile:
+    filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    filewriter.writerow(header_list)
+#    filewriter.writerow(['Latitude', 'Longitude', 'pixelStatus', 'qualityFlag', 'L1CqualityFlag', 'surfaceTypeIndex', 'totalColumnWaterVaporIndex', 'temp2mIndex', 'sunGlintAngle', 'probabilityOfPrecip', 'surfacePrecipitation', 'frozenPrecipitation', 'convectivePrecipitation', 'rainWaterPath', 'cloudWaterPath', 'iceWaterPath', 'precip1stTertial', 'precip2ndTertial', 'profileTemp2mIndex', 'profileNumber1', 'profileNumber2', 'profileNumber3', 'profileNumber4', 'profileNumber5', 'profileScale1', 'profileScale2', 'profileScale3', 'profileScale4', 'profileScale5', 'Year', 'Month', 'DayOfMonth', 'Hour', 'Minute', 'Second', 'MilliSecond', 'DayOfYear', 'SecondOfDay', 'SCorientation', 'SClatitude', 'SClongitude', 'SCaltitude', 'FractionalGranuleNumber'])
+    for i in np.arange(0,lenx):
+        #filewriter.writerow([Latitude[i,50], Longitude[i,50], pixelStatus[i,50], qualityFlag[i,50], L1CqualityFlag[i,50], surfaceTypeIndex[i,50], totalColumnWaterVaporIndex[i,50], temp2mIndex[i,50], sunGlintAngle[i,50], probabilityOfPrecip[i,50], surfacePrecipitation[i,50], frozenPrecipitation[i,50], convectivePrecipitation[i,50], rainWaterPath[i,50], cloudWaterPath[i,50], iceWaterPath[i,50], precip1stTertial[i,50], precip2ndTertial[i,50], profileTemp2mIndex[i,50], profileNumber[i,50,0], profileNumber[i,50,1], profileNumber[i,50,2], profileNumber[i,50,3], profileNumber[i,50,4], profileScale[i,50,0], profileScale[i,50,1], profileScale[i,50,2], profileScale[i,50,3], profileScale[i,50,4], Year[i], Month[i], DayOfMonth[i], Hour[i], Minute[i], Second[i], MilliSecond[i], DayOfYear[i], SecondOfDay[i], SCorientation[i], SClatitude[i], SClongitude[i], SCaltitude[i], FractionalGranuleNumber[i]])
+        filewriter.writerow([ds_fpa[10,i], lats[10,i], lons[10,i], elev[10,i], scan_time[i,0], scan_time[i,1], scan_time[i,2], scan_time[i,3], scan_time[i,4], scan_time[i,5], sfc_type[10,i], bsfc_precip[10,i], conv_precip[10,i], emiss_fpa[0,10,i], emiss_fpa[1,10,i], emiss_fpa[2,10,i], emiss_fpa[3,10,i], emiss_fpa[4,10,i], emiss_fpa[5,10,i], emiss_fpa[6,10,i], emiss_fpa[7,10,i], emiss_fpa[8,10,i], emiss_fpa[9,10,i], emiss_fpa[10,10,i], emiss_fpa[11,10,i], emiss_fpa[12,10,i], rwc28[0,10,i], rwc28[1,10,i], rwc28[2,10,i], rwc28[3,10,i], rwc28[4,10,i], rwc28[5,10,i], rwc28[6,10,i], rwc28[7,10,i], rwc28[8,10,i], rwc28[9,10,i], rwc28[10,10,i], rwc28[11,10,i], rwc28[12,10,i], rwc28[13,10,i], rwc28[14,10,i], rwc28[15,10,i], rwc28[16,10,i], rwc28[17,10,i], rwc28[18,10,i], rwc28[19,10,i], rwc28[20,10,i], rwc28[21,10,i], rwc28[22,10,i], rwc28[23,10,i], rwc28[24,10,i], rwc28[25,10,i], rwc28[26,10,i], rwc28[27,10,i], swc28[0,10,i], swc28[1,10,i], swc28[2,10,i], swc28[3,10,i], swc28[4,10,i], swc28[5,10,i], swc28[6,10,i], swc28[7,10,i], swc28[8,10,i], swc28[9,10,i], swc28[10,10,i], swc28[11,10,i], swc28[12,10,i], swc28[13,10,i], swc28[14,10,i], swc28[15,10,i], swc28[16,10,i], swc28[17,10,i], swc28[18,10,i], swc28[19,10,i], swc28[20,10,i], swc28[21,10,i], swc28[22,10,i], swc28[23,10,i], swc28[24,10,i], swc28[25,10,i], swc28[26,10,i], swc28[27,10,i],  cwc28[0,10,i], cwc28[1,10,i], cwc28[2,10,i], cwc28[3,10,i], cwc28[4,10,i], cwc28[5,10,i], cwc28[6,10,i], cwc28[7,10,i], cwc28[8,10,i], cwc28[9,10,i], cwc28[10,10,i], cwc28[11,10,i], cwc28[12,10,i], cwc28[13,10,i], cwc28[14,10,i], cwc28[15,10,i], cwc28[16,10,i], cwc28[17,10,i], cwc28[18,10,i], cwc28[19,10,i], cwc28[20,10,i], cwc28[21,10,i], cwc28[22,10,i], cwc28[23,10,i], cwc28[24,10,i], cwc28[25,10,i], cwc28[26,10,i], cwc28[27,10,i], SLH28[0,10,i], SLH28[1,10,i], SLH28[2,10,i], SLH28[3,10,i], SLH28[4,10,i], SLH28[5,10,i], SLH28[6,10,i], SLH28[7,10,i], SLH28[8,10,i], SLH28[9,10,i], SLH28[10,10,i], SLH28[11,10,i], SLH28[12,10,i], SLH28[13,10,i], SLH28[14,10,i], SLH28[15,10,i], SLH28[16,10,i], SLH28[17,10,i], SLH28[18,10,i], SLH28[19,10,i], SLH28[20,10,i], SLH28[21,10,i], SLH28[22,10,i], SLH28[23,10,i], SLH28[24,10,i], SLH28[25,10,i], SLH28[26,10,i], SLH28[27,10,i], gTbsobs[0,10,i], gTbsobs[1,10,i], gTbsobs[2,10,i], gTbsobs[3,10,i], gTbsobs[4,10,i], gTbsobs[5,10,i], gTbsobs[6,10,i], gTbsobs[7,10,i], gTbsobs[8,10,i], gTbsobs[9,10,i], gTbsobs[10,10,i], gTbsobs[11,10,i], gTbsobs[12,10,i], dTbssim_fpa[0,10,i], dTbssim_fpa[1,10,i], dTbssim_fpa[2,10,i], dTbssim_fpa[3,10,i], dTbssim_fpa[4,10,i], dTbssim_fpa[5,10,i], dTbssim_fpa[6,10,i], dTbssim_fpa[7,10,i], dTbssim_fpa[8,10,i], dTbssim_fpa[9,10,i], dTbssim_fpa[10,10,i], dTbssim_fpa[11,10,i], dTbssim_fpa[12,10,i], deltaTbs[0,10,i], deltaTbs[1,10,i], deltaTbs[2,10,i], deltaTbs[3,10,i], deltaTbs[4,10,i], deltaTbs[5,10,i], deltaTbs[6,10,i], deltaTbs[7,10,i], deltaTbs[8,10,i], deltaTbs[9,10,i], deltaTbs[10,10,i], deltaTbs[11,10,i], deltaTbs[12,10,i], biasTbs[0,10,i], biasTbs[1,10,i], biasTbs[2,10,i], biasTbs[3,10,i], biasTbs[4,10,i], biasTbs[5,10,i], biasTbs[6,10,i], biasTbs[7,10,i], biasTbs[8,10,i], biasTbs[9,10,i], biasTbs[10,10,i], biasTbs[11,10,i], biasTbs[12,10,i]])
+
+print(lenx)
+print('Did it work?')    
+################################################################################
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_final.csv'
+data1 = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+################################################################################
+TARGET_VAR = 'gTbsOBS_13'
+
+test_labels = np.array(data1[TARGET_VAR])
+
+test_features = data1.drop([TARGET_VAR, "gTbsOBS_1", "gTbsOBS_2", "gTbsOBS_3", "gTbsOBS_4", "gTbsOBS_5", "gTbsOBS_6", "gTbsOBS_7", "gTbsOBS_8", "gTbsOBS_9", "gTbsOBS_10", "gTbsOBS_11", "gTbsOBS_12", "dTbsSIM_1", "dTbsSIM_2", "dTbsSIM_3", "dTbsSIM_4", "dTbsSIM_5", "dTbsSIM_6", "dTbsSIM_7", "dTbsSIM_8", "dTbsSIM_9", "dTbsSIM_10", "dTbsSIM_11", "dTbsSIM_12", "deltaTbs_1", "deltaTbs_2", "deltaTbs_3", "deltaTbs_4", "deltaTbs_5", "deltaTbs_6", "deltaTbs_7", "deltaTbs_8", "deltaTbs_9", "deltaTbs_10", "deltaTbs_11", "deltaTbs_12", "deltaTbs_13", "biasTbs_1", "biasTbs_2", "biasTbs_3", "biasTbs_4", "biasTbs_5", "biasTbs_6", "biasTbs_7", "biasTbs_8", "biasTbs_9", "biasTbs_10", "biasTbs_11", "biasTbs_12", "biasTbs_13"], axis=1)
+
+
+test_feature_list = list(test_features.columns)
+
+print('Predictors = ' + str(test_feature_list))
+
+test_features = np.array(test_features)
+print('-----------------')
+print('Did it work?')
+
+#features = data.drop(TARGET_VAR)
+################################################################################
+# Use the forest's predict method on the test data
+predictions = rf.predict(test_features)
+
+# Use testing set to validate the performance
+# Print out the mean absolute error (MAE)
+mae_errors = abs(predictions - test_labels)
+print('Baseline error (MAE): ', round(np.mean(mae_baseline_errors), 2))
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+
+# See its performance (mean squared errors)
+mse_errors = np.sqrt(np.mean((predictions - test_labels)**2))
+print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
+print('Error (MSE): ', round(mse_errors, 2))
+################################################################################
+
+################################################################################
+
+################################################################################
+
+################################################################################
+
+################################################################################
+
+################################################################################
+
+################################################################################
