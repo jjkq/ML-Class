@@ -1002,6 +1002,3 @@ mse_errors = np.sqrt(np.mean((predictions - test_labels)**2))
 print('Baseline error (MSE): ', round( mse_baseline_errors, 2))
 print('Error (MSE): ', round(mse_errors, 2))
 ################################################################################
-
-################################################################################
-
