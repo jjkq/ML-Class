@@ -283,3 +283,308 @@ with open(sim_file,'rb') as sfile:
 print('Finished read loop')
 
 print('Did it work?')
+
+import numpy as np
+import pandas as pd
+import scipy as sp
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import h5py
+import os
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import export_graphviz
+from sklearn.inspection import permutation_importance
+import xarray as xr
+import matplotlib.pyplot as plt
+import statistics as st
+import random
+import warnings
+#import pydot
+
+
+#load data
+GMI = h5py.File('/pdata4/archive/GPM/2A-CLIM_GMI/1810/181001/2A-CLIM.GPM.GMI.GPROF2017v1.20181001-S002201-E015435.026079.V05A.HDF5', 'r')
+
+S0 = GMI['GprofDHeadr']
+S1 = GMI['S1']
+ST = S1['ScanTime']
+SCs= S1['SCstatus']
+
+Latitude = S1['Latitude'][:]
+Longitude = S1['Longitude'][:]
+#sunLocalTime = S1['sunLocalTime']
+pixelStatus = S1['pixelStatus'][:]
+qualityFlag = S1['qualityFlag'][:]
+L1CqualityFlag = S1['L1CqualityFlag'][:]
+surfaceTypeIndex = S1['surfaceTypeIndex'][:]
+totalColumnWaterVaporIndex = S1['totalColumnWaterVaporIndex'][:]
+#airmassLiftIndex = S1['airmassLiftIndex']
+temp2mIndex = S1['temp2mIndex'][:]
+sunGlintAngle = S1['sunGlintAngle'][:]
+probabilityOfPrecip = S1['probabilityOfPrecip'][:]
+#preciptitationYesNoFlag = S1['preciptiationYesNoFlag']
+surfacePrecipitation = S1['surfacePrecipitation'][:]
+frozenPrecipitation = S1['frozenPrecipitation'][:]
+convectivePrecipitation = S1['convectivePrecipitation'][:]
+rainWaterPath = S1['rainWaterPath'][:]
+cloudWaterPath = S1['cloudWaterPath'][:]
+iceWaterPath = S1['iceWaterPath'][:]
+#mostlikelyPrecipitation = S1['mostlikelyPrecipitation']
+precip1stTertial = S1['precip1stTertial'][:]
+precip2ndTertial = S1['precip2ndTertial'][:]
+profileTemp2mIndex = S1['profileTemp2mIndex'][:]
+profileNumber = S1['profileNumber'][:]
+profileScale = S1['profileScale'][:]
+Year = ST['Year'][:]
+Month = ST['Month'][:]
+DayOfMonth = ST['DayOfMonth'][:]
+Hour = ST['Hour'][:]
+Minute = ST['Minute'][:]
+Second = ST['Second'][:]
+MilliSecond = ST['MilliSecond'][:]
+DayOfYear = ST['DayOfYear'][:]
+SecondOfDay = ST['SecondOfDay'][:]
+SCorientation = SCs['SCorientation'][:]
+SClatitude = SCs['SClatitude'][:]
+SClongitude = SCs['SClongitude'][:]
+SCaltitude = SCs['SCaltitude'][:]
+FractionalGranuleNumber = SCs['FractionalGranuleNumber'][:]
+
+print('beginning to create new HDF5')
+print('-----------------------------------')
+testf = h5py.File('HW1_singlef_test3.h5','w') #, libver=('earliest', 'v108'))
+#print('creating group')
+#print('-----------------------------------')
+#testg = testf.create_group("scan")
+#print('finished creating group')
+#print('-----------------------------------')
+print('beginning to create/fill file w/ data')
+print('-----------------------------------')
+testf.create_dataset('Latitude', data=Latitude)
+testf.create_dataset('Longitude', data=Longitude)
+testf.create_dataset('pixelStatus', data=pixelStatus)
+testf.create_dataset('qualityFlag', data=qualityFlag)
+testf.create_dataset('L1CqualityFlag', data=L1CqualityFlag)
+testf.create_dataset('surfaceTypeIndex', data=surfaceTypeIndex)
+testf.create_dataset('totalColumnWaterVaporIndex', data=totalColumnWaterVaporIndex)
+testf.create_dataset('temp2mIndex', data=temp2mIndex)
+testf.create_dataset('sunGlintAngle', data=sunGlintAngle)
+testf.create_dataset('probabilityOfPrecip', data=probabilityOfPrecip)
+testf.create_dataset('surfacePrecipitation', data=surfacePrecipitation)
+testf.create_dataset('frozenPrecipitation', data=frozenPrecipitation)
+testf.create_dataset('convectivePrecipitation', data=convectivePrecipitation)
+testf.create_dataset('rainWaterPath', data=rainWaterPath)
+testf.create_dataset('cloudWaterPath', data=cloudWaterPath)
+testf.create_dataset('iceWaterPath', data=iceWaterPath)
+testf.create_dataset('precip1stTertial', data=precip1stTertial)
+testf.create_dataset('precip2ndTertial', data=precip2ndTertial)
+testf.create_dataset('profileTemp2mIndex', data=profileTemp2mIndex)
+testf.create_dataset('profileNumber', data=profileNumber)
+testf.create_dataset('profileScale', data=profileScale)
+testf.create_dataset('Year', data=Year)
+testf.create_dataset('Month', data=Month)
+testf.create_dataset('DayOfMonth', data=DayOfMonth)
+testf.create_dataset('Hour', data=Hour)
+testf.create_dataset('Minute', data=Minute)
+testf.create_dataset('Second', data=Second)
+testf.create_dataset('MilliSecond', data=MilliSecond)
+testf.create_dataset('DayOfYear', data=DayOfYear)
+testf.create_dataset('SecondOfDay', data=SecondOfDay)
+testf.create_dataset('SCorientation', data=SCorientation)
+testf.create_dataset('SClatitude', data=SClatitude)
+testf.create_dataset('SClongitude', data=SClongitude)
+testf.create_dataset('SCaltitude', data=SCaltitude)
+testf.create_dataset('FractionalGranuleNumber', data=FractionalGranuleNumber)
+print('finished creating/filling dataset')
+print('-----------------------------------')
+
+sim_dir = '/qdata1/pbrown/dbaseV8/simV8/1810'
+#month = '1811'
+
+#print('Files Available:')
+#for ifile in os.listdir(sim_dir):
+#for ifile in os.listdir(sim_dir+'/'+month):
+#  print(ifile)
+    
+sim_fname = 'GMI.dbsatTb.20181001.026079.sim'
+sim_file = sim_dir+'/'+sim_fname
+#sim_file = sim_dir+month+'/'+sim_fname
+
+
+MHSfreqs = np.zeros(12,dtype='f')
+MHSviewangles   = np.zeros(15,dtype='f')
+
+with open(sim_file,'rb') as sfile:
+    
+    sat_id = sfile.read(5)
+    sensor = sfile.read(5)
+    
+    MHSfreqs         = np.fromfile(sfile, dtype='f', count=15)
+    MHSviewangles    = np.fromfile(sfile, dtype='f', count=15)
+
+    pix_start        = np.fromfile(sfile, dtype='i', count=1)
+    pix_end          = np.fromfile(sfile, dtype='i', count=1)
+    scan_start       = np.fromfile(sfile, dtype='i', count=1)
+    scan_end         = np.fromfile(sfile, dtype='i', count=1)
+
+    npix   = int(pix_end - pix_start)
+    nscans = int(scan_end - scan_start) #2963
+
+    print('File Header Info:')
+    print('---------------------------------------------------')
+    print(sat_id,sensor)
+    print('GMI Frequencies: ')
+    print(MHSfreqs)
+    print('GMI View Angles: ')
+    print(MHSviewangles)
+    print('')
+    print('Pix Start    = ', pix_start)
+    print('Pix End      = ', pix_end)
+    print('Scan Start   = ', scan_start)
+    print('Scan End     = ', scan_end)
+    print('----------------------------------------------------')
+
+    pix         = np.zeros(1, dtype='i')
+    scn         = np.zeros(1, dtype='i')
+    ds_fpa      = np.zeros([npix,nscans],dtype='f')
+    lats        = np.zeros([npix,nscans],dtype='f')
+    lons        = np.zeros([npix,nscans],dtype='f')
+    elev        = np.zeros([npix,nscans],dtype='f')
+    scan_time   = np.zeros([nscans,6],dtype='i')
+    sfc_type    = np.zeros([npix,nscans],dtype='i')
+    bsfc_precip = np.zeros([npix,nscans],dtype='f')
+    conv_precip = np.zeros([npix,nscans],dtype='f')
+    emiss_fpa   = np.zeros([13,npix,nscans],dtype='f')
+    mfill       = np.zeros(1, dtype='f')
+    rwc28       = np.zeros([28,npix,nscans],dtype='f')
+    swc28       = np.zeros([28,npix,nscans],dtype='f')
+    cwc28       = np.zeros([28,npix,nscans],dtype='f')
+    SLH28       = np.zeros([28,npix,nscans],dtype='f')
+    gTbsobs     = np.zeros([13,npix,nscans],dtype='f')
+    dTbssim_fpa = np.zeros([13,npix,nscans],dtype='f')
+    deltaTbs    = np.zeros([13,npix,nscans],dtype='f')
+    biasTbs     = np.zeros([13,npix,nscans],dtype='f')
+    mfill4      = np.zeros(4, dtype='f')
+
+    
+    
+    outer = 0
+
+    print('Beginning read loop...')
+
+    
+
+    for iscan in np.arange(0,nscans):
+        for ipix in np.arange(0,npix):
+            pix = np.fromfile(sfile, dtype='i', count=1)
+            scn = np.fromfile(sfile, dtype='i', count=1)
+#            print(pix)
+            
+#            print(scn)
+
+
+            if np.size(pix) == 0 :
+                last_pix = ipix - 1
+                last_scan = iscan
+                print('File end at scan, pixel = '+str(last_scan)+','+str(last_pix))
+                outer = 1
+                break
+
+            
+            ds_fpa[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            lats[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('lat : ', lats[ipix,iscan])
+            lons[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('lon : ', lons[ipix,iscan])
+            elev[ipix,iscan]          = np.fromfile(sfile, dtype='f', count=1)
+            #print('elev : ', elev[ipix,iscan])
+            scan_time[iscan,0:6]      = np.fromfile(sfile, dtype='i', count=6)
+            #print('scan time : ', scan_time[iscan,...])
+            sfc_type[ipix,iscan]      = np.fromfile(sfile, dtype='i', count=1)
+            #print('surface type : ', sfc_type[ipix,iscan])
+            bsfc_precip[ipix,iscan] = np.fromfile(sfile, dtype='f', count=1)
+            #print('bsfc_precip : ', bsfc_precip[ipix,iscan])
+            mfill4 = np.fromfile(sfile, dtype='f', count=4)
+            conv_precip[ipix,iscan] = np.fromfile(sfile, dtype='f', count=1)
+            #print('conv_precip : ', conv_precip[ipix,iscan])
+            emiss_fpa[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            #print('emiss_fpa 1-5 : ', emiss_fpa[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            #print('mfill equals : ', mfill)
+            emiss_fpa[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            #print('emiss_fpa 6-11 : ', emiss_fpa[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            #print('mfill equals : ', mfill)
+            emiss_fpa[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            #print('emiss_fpa 12-13 : ', emiss_fpa[...,ipix,iscan])
+            rwc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('rwc28 : ', rwc28[...,ipix,iscan])
+            swc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('swc28 : ', swc28[...,ipix,iscan])
+            cwc28[0:28,ipix,iscan]         = np.fromfile(sfile, dtype='f', count=28)
+            #print('cwc28 : ', cwc28[...,ipix,iscan])
+            SLH28[0:28,ipix,iscan]  = np.fromfile(sfile, dtype='f', count=28)
+            print('SLH28 : ', SLH28[...,ipix,iscan])
+            gTbsobs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            #print('gTbsobs 1-5 : ', gTbsobs[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            gTbsobs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            #print('gTbsobs 6-11 : ', gTbsobs[...,ipix,iscan])
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            gTbsobs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            #print('gTbsobs 12-13 : ', gTbsobs[...,ipix,iscan])
+            dTbssim_fpa[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            dTbssim_fpa[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            dTbssim_fpa[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            deltaTbs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            deltaTbs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            deltaTbs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            biasTbs[0:5,ipix,iscan] = np.fromfile(sfile, dtype='f',count=5)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            biasTbs[5:11,ipix,iscan] = np.fromfile(sfile, dtype='f',count=6)
+            mfill = np.fromfile(sfile, dtype='f', count=1)
+            biasTbs[11:13,ipix,iscan] = np.fromfile(sfile, dtype='f',count=2)
+            
+            
+            exit
+
+            
+        if outer == 1:
+            break
+
+
+print('Finished read loop')
+
+print('Did it work?')
+
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_test.csv'
+data = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+
+data.describe()
+
+# Import tensorflow and keras
+import tensorflow as tf
+import tensorflow.keras as keras
+import tensorflow.keras.layers as layers
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats, odr
+
+from sklearn.model_selection import train_test_split
+
+import matplotlib as mpl
