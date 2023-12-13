@@ -449,3 +449,543 @@ rf = RandomForestRegressor(n_estimators = number_of_trees,
 # Train the model on training data
 rf.fit(Xtrainr, Ytrain)# You need a baseline to quantify whether the model is useful
 
+# Use the forest's predict method on the test data
+predictions = rf.predict(Xvalr)
+
+# Use testing set to validate the performance
+# Print out the mean absolute error (MAE)
+mae_errors = abs(predictions - Yval)
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+
+# See its performance (mean squared errors)
+mse_errors = np.sqrt(np.mean((predictions - Yval)**2))
+print('Error (MSE): ', round(mse_errors, 2))
+
+#Default was None
+tree_depth = 14
+number_of_trees = 265
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(Xtrainr, Ytrain);
+predictions = rf.predict(Xvalr)
+mae_errors = abs(predictions - Yval)
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - Yval)**2))
+print('Error (MSE): ', round(mse_errors, 2))
+
+# Default = 2
+node_split = 2
+tree_depth = 14
+number_of_trees = 265
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(Xtrainr, Ytrain);
+predictions = rf.predict(Xvalr)
+mae_errors = abs(predictions - Yval)
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - Yval)**2))
+print('Error (MSE): ', round(mse_errors, 2))
+
+# Default = 2
+node_split = 10
+tree_depth = 14
+number_of_trees = 265
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(Xtrainr, Ytrain);
+predictions = rf.predict(Xvalr)
+mae_errors = abs(predictions - Yval)
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - Yval)**2))
+print('Error (MSE): ', round(mse_errors, 2))
+
+# Default = 1
+leaf_samples = 3
+node_split = 10
+tree_depth = 14
+number_of_trees = 265
+
+rf = RandomForestRegressor(n_estimators = number_of_trees, random_state = 42,min_samples_split = node_split,min_samples_leaf = leaf_samples,criterion = criterion,max_depth = tree_depth)
+rf.fit(Xtrainr, Ytrain);
+predictions = rf.predict(Xvalr)
+mae_errors = abs(predictions - Yval)
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - Yval)**2))
+print('Error (MSE): ', round(mse_errors, 2))
+
+file = '/home/josh/GPROF_test/Scratch_Code/GMI_conversion_testing_data.csv'
+data = pd.read_csv(file, quoting=csv.QUOTE_NONNUMERIC)
+print('Did it work?')
+
+INPUT_VARIABLES_T = [
+    'Datasource_fpa', 
+    'Latitude', 
+    'Longitude', 
+    'Elevation', 
+    'ScanTime1', 
+    'ScanTime2', 
+    'ScanTime3', 
+    'ScanTime4', 
+    'ScanTime5', 
+    'ScanTime6', 
+    'SurfaceType', 
+    'bSurfacePrecip', 
+    'cConvectivePrecip', 
+    'EmissFPA1', 
+    'EmissFPA2', 
+    'EmissFPA3', 
+    'EmissFPA4', 
+    'EmissFPA5', 
+    'EmissFPA6', 
+    'EmissFPA7', 
+    'EmissFPA8', 
+    'EmissFPA9', 
+    'EmissFPA10', 
+    'EmissFPA11', 
+    'EmissFPA12', 
+    'EmissFPA13', 
+    'rwc28_1', 
+    'rwc28_2', 
+    'rwc28_3', 
+    'rwc28_4', 
+    'rwc28_5', 
+    'rwc28_6', 
+    'rwc28_7', 
+    'rwc28_8', 
+    'rwc28_9', 
+    'rwc28_10', 
+    'rwc28_11', 
+    'rwc28_12', 
+    'rwc28_13', 
+    'rwc28_14', 
+    'rwc28_15', 
+    'rwc28_16', 
+    'rwc28_17', 
+    'rwc28_18', 
+    'rwc28_19', 
+    'rwc28_20', 
+    'rwc28_21', 
+    'rwc28_22', 
+    'rwc28_23', 
+    'rwc28_24', 
+    'rwc28_25', 
+    'rwc28_26', 
+    'rwc28_27', 
+    'rwc28_28', 
+    'swc28_1', 
+    'swc28_2', 
+    'swc28_3', 
+    'swc28_4', 
+    'swc28_5', 
+    'swc28_6', 
+    'swc28_7', 
+    'swc28_8', 
+    'swc28_9', 
+    'swc28_10', 
+    'swc28_11', 
+    'swc28_12', 
+    'swc28_13', 
+    'swc28_14', 
+    'swc28_15', 
+    'swc28_16', 
+    'swc28_17', 
+    'swc28_18', 
+    'swc28_19', 
+    'swc28_20', 
+    'swc28_21', 
+    'swc28_22', 
+    'swc28_23', 
+    'swc28_24', 
+    'swc28_25', 
+    'swc28_26', 
+    'swc28_27', 
+    'swc28_28', 
+    'cwc28_1', 
+    'cwc28_2', 
+    'cwc28_3', 
+    'cwc28_4', 
+    'cwc28_5', 
+    'cwc28_6', 
+    'cwc28_7', 
+    'cwc28_8', 
+    'cwc28_9', 
+    'cwc28_10', 
+    'cwc28_11', 
+    'cwc28_12', 
+    'cwc28_13', 
+    'cwc28_14', 
+    'cwc28_15', 
+    'cwc28_16', 
+    'cwc28_17', 
+    'cwc28_18', 
+    'cwc28_19', 
+    'cwc28_20', 
+    'cwc28_21', 
+    'cwc28_22', 
+    'cwc28_23', 
+    'cwc28_24', 
+    'cwc28_25', 
+    'cwc28_26', 
+    'cwc28_27', 
+    'cwc28_28', 
+    'SLH28_1', 
+    'SLH28_2', 
+    'SLH28_3', 
+    'SLH28_4', 
+    'SLH28_5', 
+    'SLH28_6', 
+    'SLH28_7', 
+    'SLH28_8', 
+    'SLH28_9', 
+    'SLH28_10', 
+    'SLH28_11', 
+    'SLH28_12', 
+    'SLH28_13', 
+    'SLH28_14', 
+    'SLH28_15', 
+    'SLH28_16', 
+    'SLH28_17', 
+    'SLH28_18', 
+    'SLH28_19', 
+    'SLH28_20', 
+    'SLH28_21', 
+    'SLH28_22', 
+    'SLH28_23', 
+    'SLH28_24', 
+    'SLH28_25', 
+    'SLH28_26', 
+    'SLH28_27', 
+    'SLH28_28', 
+    'dTbsSIM_13',
+]
+
+data_tbu_t = data[['gTbsOBS_13'] + INPUT_VARIABLES_T]
+
+# Creating a numpy array for our inputs and outputs
+Xtest = data_tbu_t[INPUT_VARIABLES_T].values
+Ytest = data_tbu_t['gTbsOBS_13'].values
+print('-----------------')
+print('Did it work?')
+
+pca = PCA(n_components=12)
+Xtestr = pca.fit_transform(Xtest)
+print('Did it work?')
+
+predictions = rf.predict(Xtestr)
+mae_errors = abs(predictions - Ytest)
+print('Error (MAE): ', round(np.mean(mae_errors), 2))
+mse_errors = np.sqrt(np.mean((predictions - Ytest)**2))
+print('Error (MSE): ', round(mse_errors, 2))
+
+import tensorflow as tf
+import tensorflow.keras as keras
+import tensorflow.keras.layers as layers
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats, odr
+
+import seaborn as sb
+# Distribution of ozone concentrations
+sb.displot(output_raw, kind="hist")
+plt.xlabel("TBs (K)")
+
+plt.title("Histogram of gTbOBS for Ch 13", fontweight="demi")
+plt.plot()
+plt.show()
+
+def my_loss(y_true, y_pred):
+    # term_1 = tf.math.pow(tf.math.maximum(tf.math.abs(y_true), tf.math.abs(y_pred)), 5.0)  # symmetric
+    term_1 = tf.math.pow(tf.math.abs(tf.math.maximum(y_true, y_pred)), 10.0)  # asymmetric
+    term_2 = tf.math.pow((y_true-y_pred), 2.0)
+    loss_value = tf.multiply(term_1, term_2)
+    return tf.math.reduce_mean(loss_value)
+print('Did it work?')
+
+def build_model(x_train, y_train, settings):
+    # create input layer
+    input_layer = tf.keras.layers.Input(shape=x_train.shape[1:])
+
+    # create a normalization layer if you would like
+    normalizer = tf.keras.layers.Normalization(axis=(1,))
+    normalizer.adapt(x_train)
+    layers = normalizer(input_layer)
+
+    # create hidden layers each with specific number of nodes
+    assert len(settings["hiddens"]) == len(
+        settings["activations"]
+    ), "hiddens and activations settings must be the same length."
+
+    # add dropout layer
+    layers = tf.keras.layers.Dropout(rate=settings["dropout_rate"])(layers)
+
+    for hidden, activation in zip(settings["hiddens"], settings["activations"]):
+        layers = tf.keras.layers.Dense(
+            units=hidden,
+            activation=activation,
+            use_bias=True,
+            kernel_regularizer=tf.keras.regularizers.l1_l2(l1=0, l2=0),
+            bias_initializer=tf.keras.initializers.RandomNormal(seed=settings["random_seed"]),
+            kernel_initializer=tf.keras.initializers.RandomNormal(seed=settings["random_seed"]),
+        )(layers)
+
+    # create output layer
+    output_layer = tf.keras.layers.Dense(
+        units=1,  # one unit in the output since this is a regression problem
+        activation="linear",
+        use_bias=True,
+        bias_initializer=tf.keras.initializers.RandomNormal(seed=settings["random_seed"] + 1),
+        kernel_initializer=tf.keras.initializers.RandomNormal(seed=settings["random_seed"] + 2),
+    )(layers)
+
+    # construct the model
+    model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
+    model.summary()
+
+    return model
+
+
+def compile_model(model, settings):
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=settings["learning_rate"]),
+        loss="mae",
+        # loss = my_loss,
+        metrics=[
+            "mse",
+            "mae"
+        ],
+    )
+    return model
+print('Did it work?')
+
+# # Split the data into training and testing sets
+
+# # Tunable Parameter: Describes the proportion of the dataset we want to use for testing. 1 - split_size is used for training.
+# split_size = 0.2
+
+# # PARAMETERS:
+# #     test_size: fraction of testing/validation datasets
+# #     random_state: random parameter
+# Xtrain, Xval, Ytrain, Yval = train_test_split(
+#     input_raw, output_raw, test_size=split_size, random_state=42
+# )
+# print('Did it work?')
+
+settings = {
+    "hiddens": [3, 3],
+    "activations": ["relu", "relu"],
+    "learning_rate": 0.0005,
+    "random_seed": 33,
+    "max_epochs": 5_000,
+    "batch_size": 256,
+    "patience": 10,
+    "dropout_rate": 0.,
+}
+
+tf.keras.backend.clear_session()
+tf.keras.utils.set_random_seed(settings["random_seed"])
+
+model = build_model(Xtrainr, Ytrain, settings)
+model = compile_model(model, settings)
+print('Did it work?')
+
+# define the early stopping callback
+early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+    monitor="val_loss", patience=settings["patience"], restore_best_weights=True, mode="auto", verbose=1,
+)
+
+# train the model via model.fit
+history = model.fit(
+    Xtrainr,
+    Ytrain,
+    epochs=settings["max_epochs"],
+    batch_size=settings["batch_size"],
+    shuffle=True,
+    validation_data=[Xvalr, Yval],
+    callbacks=[early_stopping_callback],
+    verbose=2,
+)
+print('Did it work?')
+
+# Let's plot the change in loss and categorical_accuracy
+
+fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+
+axs[0].plot(history.history["loss"], label="training")
+axs[0].plot(history.history["val_loss"], label="validation")
+axs[0].set_xlabel("Epoch")
+axs[0].set_ylabel("Loss")
+axs[0].legend()
+
+axs[1].plot(history.history["mae"], label="training")
+axs[1].plot(history.history["val_mae"], label="validation")
+axs[1].set_xlabel("Epoch")
+axs[1].set_ylabel("Mean Absolute Error")
+axs[1].legend()
+plt.show()
+
+# pca = PCA(n_components=12)
+# Xtestr = pca.fit_transform(Xtest)
+# print('Did it work?')
+
+# What predictions did the model make for our training, validation, and test sets?
+Ptrain = model.predict(Xtrainr)  # Array of predictions
+Pval = model.predict(Xvalr)
+Ptest = model.predict(Xtestr)
+print('Did it work?')
+
+error_test = np.abs(Pval - Yval)[:,0]
+plt.figure()
+plt.plot(Yval, error_test, ".")
+plt.xlabel("true value")
+#plt.ylabel("predicted value")
+plt.ylabel("error_test")
+plt.show()
+#features = np.array(data_tbu[INPUT_VARIABLES])
+#feature_list = list(features.columns)
+
+error_test_t = np.abs(Ptest - Ytest)[:,0]
+plt.figure()
+plt.plot(Ytest, error_test_t, ".")
+plt.xlabel("true value")
+#plt.ylabel("predicted value")
+plt.ylabel("error_test")
+plt.show()
+#features = np.array(data_tbu[INPUT_VARIABLES])
+#feature_list = list(features.columns)
+
+plt.plot(Yval, Yval, 'bo', label = 'gTbsOBS_13')
+plt.plot(Yval, Pval, 'rx', label = 'gTbsOBS_13')
+plt.show()
+
+plt.plot(Ytest, Ytest, 'bo', label = 'gTbsOBS_13')
+plt.plot(Ytest, Ptest, 'rx', label = 'gTbsOBS_13')
+plt.show()
+
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+
+MSEtr = mean_squared_error(Ytrain,Ptrain)
+MAEtr = mean_absolute_error(Ytrain,Ptrain)
+MSEv = mean_squared_error(Yval,Pval)
+MAEv = mean_absolute_error(Yval,Pval)
+MSEt = mean_squared_error(Ytest,Ptest)
+MAEt = mean_absolute_error(Ytest,Ptest)
+
+#print('Training MSE : ', MSEtr)
+#print('Training MAE : ', MAEtr)
+print('-----------------------------------')
+print('Validation MSE : ', MSEv)
+print('Validation MAE : ', MAEv)
+print('-----------------------------------')
+print('Testing MSE : ', MSEt)
+print('Testing MAE : ', MAEt)
+print('-----------------------------------')
+
+settings = {
+    "hiddens": [3, 3],
+    "activations": ["relu", "relu"],
+    "learning_rate": 0.0005,
+    "random_seed": 33,
+    "max_epochs": 5_000,
+    "batch_size": 256,
+    "patience": 50,
+    "dropout_rate": 0.,
+}
+
+tf.keras.backend.clear_session()
+tf.keras.utils.set_random_seed(settings["random_seed"])
+
+model = build_model(Xtrainr, Ytrain, settings)
+model = compile_model(model, settings)
+print('Did it work?')
+
+# define the early stopping callback
+early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+    monitor="val_loss", patience=settings["patience"], restore_best_weights=True, mode="auto", verbose=1,
+)
+
+# train the model via model.fit
+history = model.fit(
+    Xtrainr,
+    Ytrain,
+    epochs=settings["max_epochs"],
+    batch_size=settings["batch_size"],
+    shuffle=True,
+    validation_data=[Xvalr, Yval],
+    callbacks=[early_stopping_callback],
+    verbose=2,
+)
+print('Did it work?')
+
+# Let's plot the change in loss and categorical_accuracy
+
+fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+
+axs[0].plot(history.history["loss"], label="training")
+axs[0].plot(history.history["val_loss"], label="validation")
+axs[0].set_xlabel("Epoch")
+axs[0].set_ylabel("Loss")
+axs[0].legend()
+
+axs[1].plot(history.history["mae"], label="training")
+axs[1].plot(history.history["val_mae"], label="validation")
+axs[1].set_xlabel("Epoch")
+axs[1].set_ylabel("Mean Absolute Error")
+axs[1].legend()
+plt.show()
+
+# What predictions did the model make for our training, validation, and test sets?
+Ptrain = model.predict(Xtrainr)  # Array of predictions
+Pval = model.predict(Xvalr)
+Ptest = model.predict(Xtestr)
+print('Did it work?')
+
+error_test = np.abs(Pval - Yval)[:,0]
+plt.figure()
+plt.plot(Yval, error_test, ".")
+plt.xlabel("true value")
+#plt.ylabel("predicted value")
+plt.ylabel("error_test")
+plt.show()
+#features = np.array(data_tbu[INPUT_VARIABLES])
+#feature_list = list(features.columns)
+
+error_test_t = np.abs(Ptest - Ytest)[:,0]
+plt.figure()
+plt.plot(Ytest, error_test_t, ".")
+plt.xlabel("true value")
+#plt.ylabel("predicted value")
+plt.ylabel("error_test")
+plt.show()
+#features = np.array(data_tbu[INPUT_VARIABLES])
+#feature_list = list(features.columns)
+
+plt.plot(Yval, Yval, 'bo', label = 'gTbsOBS_13')
+plt.plot(Yval, Pval, 'rx', label = 'gTbsOBS_13')
+plt.show()
+
+plt.plot(Ytest, Ytest, 'bo', label = 'gTbsOBS_13')
+plt.plot(Ytest, Ptest, 'rx', label = 'gTbsOBS_13')
+plt.show()
+
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+
+MSEtr = mean_squared_error(Ytrain,Ptrain)
+MAEtr = mean_absolute_error(Ytrain,Ptrain)
+MSEv = mean_squared_error(Yval,Pval)
+MAEv = mean_absolute_error(Yval,Pval)
+MSEt = mean_squared_error(Ytest,Ptest)
+MAEt = mean_absolute_error(Ytest,Ptest)
+
+#print('Training MSE : ', MSEtr)
+#print('Training MAE : ', MAEtr)
+print('-----------------------------------')
+print('Validation MSE : ', MSEv)
+print('Validation MAE : ', MAEv)
+print('-----------------------------------')
+print('Testing MSE : ', MSEt)
+print('Testing MAE : ', MAEt)
+print('-----------------------------------')
+
